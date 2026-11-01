@@ -1,0 +1,17 @@
+{
+  "name": "Phantom Fury",
+  "slug": "phantomfury",
+  "namespace": "PhantomFury",
+  "kit": "hex",
+  "live": "game/index.html",
+  "versions": "versions",
+  "snapshot": [
+    "game",
+    "data",
+    "fw"
+  ],
+  "fw_version": "0.5.0",
+  "created": "2026-10-04",
+  "template": "new-boardgame skill",
+  "framework_src": "/Users/dad/Library/CloudStorage/Dropbox-Personal2/__SCAD/_CLAUDE/_GAMES/_BOARDGAMES/_FRAMEWORK"
+}

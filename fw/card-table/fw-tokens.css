@@ -1,0 +1,153 @@
+/* fw-tokens.css — the variables card-table.css and the ui-kit read.
+ *
+ * Dark, neutral, desktop. A project overrides any of these in its own
+ * stylesheet loaded after this one; it never edits this file. Lifted from
+ * WARS_TCG css/tokens.css minus that game's starfield and chrome. */
+
+:root {
+  /* Ground */
+  --void:        #070a14;
+  --void-2:      #0d1326;
+  --panel:       rgba(15, 23, 42, 0.85);
+  --panel-solid: #111a2e;
+  --panel-edge:  rgba(120, 160, 220, 0.18);
+  --panel-edge-bright: rgba(140, 190, 255, 0.38);
+
+  /* Accents */
+  --amber:     #ff9d00;
+  --amber-dim: rgba(255, 157, 0, 0.16);
+  --cyan:      #00f0ff;
+  --cyan-dim:  rgba(0, 240, 255, 0.14);
+  --blue:      #2a75ff;
+  --blue-dim:  rgba(42, 117, 255, 0.16);
+  --danger:    #ff3b30;
+  --danger-dim: rgba(255, 59, 48, 0.16);
+  --good:      #35d07f;
+  --good-dim:  rgba(53, 208, 127, 0.16);
+
+  /* Action highlight: the legal-zone glow */
+  --aura:      rgba(255, 200, 0, 0.85);
+  --aura-soft: rgba(255, 200, 0, 0.28);
+
+  /* Type */
+  --ink:       #e8eefc;
+  --ink-2:     #9fb0cc;
+  --ink-3:     #64748b;
+  --font: "Inter", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  /* Metrics */
+  --r-sm: 6px;
+  --r:    10px;
+  --r-lg: 16px;
+  --shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+
+  /* The fixed canvas every table app is authored on: 1920 x 1080, the console
+     authoring size, scaled to the window as one unit — never scale elements.
+     --safe-x / --safe-y are the 10% title-safe margins; everything that must be
+     read or clicked stays inside them. */
+  --canvas-w: 1920px;
+  --canvas-h: 1080px;
+  --safe-x: 96px;
+  --safe-y: 54px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--void);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--r);
+}
+
+.btn {
+  font: inherit;
+  font-weight: 560;
+  color: var(--ink);
+  background: rgba(30, 44, 74, 0.9);
+  border: 1px solid var(--panel-edge-bright);
+  border-radius: var(--r-sm);
+  padding: 7px 13px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .1s, box-shadow .15s;
+}
+.btn:hover:not(:disabled) { background: rgba(46, 66, 105, .95); border-color: var(--cyan); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: .38; cursor: not-allowed; }
+.btn.primary {
+  background: linear-gradient(180deg, rgba(42,117,255,.95), rgba(28,86,200,.95));
+  border-color: rgba(120,180,255,.65);
+}
+
+/* The canvas shell: a fixed stage centred in the window, with a notice when
+   the window is too small. A platform layer may scale .fw-stage as one unit. */
+.fw-stage {
+  position: relative;
+  width: var(--canvas-w);
+  height: var(--canvas-h);
+  margin: 0 auto;
+  overflow: hidden;
+}
+/* The title-safe area: a 10% inset. Anything that must be read or clicked goes
+   inside it; background art may bleed past it. */
+.fw-safe {
+  position: absolute;
+  left: var(--safe-x); right: var(--safe-x);
+  top: var(--safe-y); bottom: var(--safe-y);
+}
+/* FW.stage.fit() scales .fw-stage to the window, so there is no window too
+   small: the canvas letterboxes instead. */
+.fw-toosmall { display: none !important; }
+
+@keyframes pulse-aura {
+  0%, 100% { box-shadow: 0 0 0 0 var(--aura-soft), 0 0 14px 2px var(--aura-soft); }
+  50%      { box-shadow: 0 0 0 4px transparent, 0 0 22px 7px var(--aura); }
+}
+
+/* ---------------------------------------------------------------- the UI kit
+   Three things every table page needs, added in 0.4.0 after the first real
+   project found each one the hard way. */
+
+/* 1. One multiplier for every font size on the page. Write sizes as
+      `calc(16px * var(--type))`; FW.type sets this and remembers the choice.
+      The layout must hold at the largest step — fw_ui_checks.type_steps_hold. */
+:root { --type: 1; }
+
+/* 2. A piece in flight: a copy of it, above every band, so that a card leaving
+      a zone with `overflow: hidden` is not cut in half on the way out.
+      FW.motion owns these; the name is deliberately unlike any state class,
+      because a rule written for one thing will otherwise catch another wearing
+      the same name (`.ghost` for a flying card once caught `.btn.ghost`). */
+.fw-fx { position: absolute; inset: 0; z-index: 4000; pointer-events: none; }
+.fw-fx > * { pointer-events: auto; }
+.fw-flyer { position: absolute; z-index: 2000; pointer-events: none;
+  transform-origin: top left; will-change: transform; }
+.fw-flyer img { display: block; border-radius: var(--r-sm); border: 1px solid #000;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .75); }
+
+/* 3. The two controls that are taste, not design: text size and motion. */
+.fw-typectl { display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font); color: var(--ink-2); }
+.fw-typectl .k { font-size: calc(13px * var(--type)); letter-spacing: .12em;
+  text-transform: uppercase; }
+.fw-typectl .v { font-size: calc(13px * var(--type)); min-width: 4.2em; }
+.fw-typectl input[type="range"] { width: 92px; accent-color: var(--amber); }
+.fw-motion-t { font-size: calc(13px * var(--type)); color: var(--ink-2);
+  background: none; border: 1px solid var(--panel-edge); border-radius: var(--r-sm);
+  padding: 1px 9px; font-family: var(--font); cursor: pointer; }
+.fw-motion-t:hover { color: var(--ink); border-color: var(--panel-edge-bright); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fw-flyer { display: none; }
+}

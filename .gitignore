@@ -1,0 +1,9 @@
+# Kept local only (owner, 2026-10-31)
+*.md
+source/
+BACKUP/
+# Clutter
+.DS_Store
+__pycache__/
+*.pyc
+node_modules/

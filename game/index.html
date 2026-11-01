@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phantom Fury</title>
+<link rel="stylesheet" href="../fw/card-table/fw-tokens.css">
+<link rel="stylesheet" href="phantomfury.css">
+</head>
+<body>
+<!-- Around the stage, on a window of any shape: the map itself, blurred. -->
+<div id="backdrop" aria-hidden="true"></div>
+<div class="fw-stage">
+  <div id="fx" class="fw-fx"></div>
+  <div id="board"></div>
+  <div id="hand-tip" hidden></div>
+  <!-- The first-game coach (data: GUIDE.coach), in the lesson's look: an
+       amber-edged panel on the right of the stage with Walsh beside it, and
+       an arrow from the panel to the control she means. -->
+  <svg id="coach-pointer" aria-hidden="true" hidden><defs>
+    <marker id="coach-head" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs><path id="coach-case"/><path id="coach-line" marker-end="url(#coach-head)"/><rect id="coach-ring" rx="10"/></svg>
+  <div class="panel" id="coach" hidden role="dialog" aria-label="First-game guide">
+    <div id="coach-guide"><img id="coach-img" alt="Specialist Walsh"></div>
+    <div class="tutor-head"><span class="tutor-name">Spc. Walsh</span><span id="coach-count"></span></div>
+    <h3 id="coach-title"></h3>
+    <p id="coach-say"></p>
+    <div class="tutor-foot">
+      <button class="btn" id="coach-skip" type="button">Don't show again</button>
+      <button class="btn primary" id="coach-ok" type="button">Got it ▸</button>
+    </div>
+  </div>
+  <!-- Map-centric: the menu runs across the top (1% margin), the map
+       fills the rest to 2% of each edge, and the status card and panel
+       buttons float over it. -->
+  <div id="topbar">
+    <div class="panel" id="menubar">
+      <button class="menu-logo" id="btn-title" aria-label="Phantom Fury — title screen" title="Title screen"></button>
+      <button class="btn" id="btn-auto">Auto setup</button>
+      <button class="btn" id="btn-undo">Undo</button>
+      <button class="btn" id="btn-new">New match</button>
+      <button class="btn" id="btn-save">Save</button>
+      <button class="btn" id="btn-load">Load</button>
+      <button class="btn" id="btn-tutorial">Learn to play</button>
+      <button class="btn" id="btn-primer">How to play</button>
+      <div class="zoom-seg" id="zoom-seg" role="group" aria-label="Map zoom"
+           title="Map zoom — mouse wheel, keys 1-4, or double-click the map">
+        <span class="zoom-seg-label">ZOOM</span>
+        <button class="btn" data-zoom="0">City</button>
+        <button class="btn" data-zoom="1">District</button>
+        <button class="btn" data-zoom="2">Zone</button>
+        <button class="btn" data-zoom="3">Close</button>
+      </div>
+      <div class="bar" id="taste"></div>
+    </div>
+  </div>
+  <!-- The status line is extra information: a card floating over the
+       map's left side, not a strip of its own. -->
+  <!-- The reserve tray (owner, 2026-10-31): while reserves can be played
+       (Setup, Reinforcements) they wait here over the map's top edge, with
+       no dimming, and the tray stays open from one placement to the next. -->
+  <div class="panel" id="reserve-tray" hidden aria-label="Reserves to place">
+    <div class="tray-head"><span class="tray-k" id="reserve-tray-k">Reserves</span><span id="reserve-tray-hint"></span></div>
+    <div id="reserve-tray-row"></div>
+  </div>
+  <!-- The combat report (owner, 2026-10-31): every roll of the last move,
+       in the lesson's panel, over the map's top edge; Hendrix on a shot. -->
+  <div class="panel" id="report" hidden role="status" aria-live="polite">
+    <div id="report-cameo" hidden><img id="report-cameo-img" src="../assets/characters/hendrix-rifle-kneeling-fire.png" alt="Corporal Hendrix"></div>
+    <div class="tutor-head"><span class="tutor-name" id="report-kicker"></span><span id="report-cite"></span></div>
+    <h3 id="report-title"></h3>
+    <ol id="report-rolls"></ol>
+    <div id="report-more"></div>
+    <div class="tutor-foot"><button class="btn primary" id="report-ok" type="button">OK ▸</button></div>
+  </div>
+  <div class="panel" id="statusbar">
+    <div id="status"></div>
+    <!-- In hand: the piece the player has picked; where it may go glows
+         on the map, and hovering a lit place labels the click (#hand-tip) -->
+    <div id="hand" hidden>
+      <span class="hand-k">In hand</span><span id="hand-token"></span>
+      <span id="hand-text"></span><button class="btn" id="hand-drop" type="button">Put back</button>
+    </div>
+    <!-- the play guide (data/phantomfury_guide.js): the turn's phases, this
+         one lit; what to do now; what comes next, with its button -->
+    <ol id="phase-track" aria-label="The turn's phases"></ol>
+    <div id="prompt"></div>
+    <ol id="guide-steps" hidden></ol>
+    <div id="guide-acts" class="bar" hidden></div>
+    <div id="guide-next"></div>
+    <div id="why" class="why"></div>
+  </div>
+  <!-- The panels live in popup windows: one square button per window in
+       this dock, one window open at a time. -->
+  <nav id="dock" aria-label="Panels">
+      <button class="dock-btn" id="dock-decisions" data-popup="decision-panel" title="Your move — the decision panel">
+        <span class="dock-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/></svg></span>
+        <span class="dock-label">Decide</span>
+        <span class="dock-badge" id="dock-decisions-badge" hidden></span>
+      </button>
+      <button class="dock-btn" id="dock-changes" data-popup="popup-changes" title="What changed">
+        <span class="dock-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+        <span class="dock-label">Changes</span>
+        <span class="dock-badge" id="dock-changes-badge" hidden></span>
+      </button>
+      <button class="dock-btn" id="dock-pieces" data-popup="popup-pieces" title="Pieces — reserves">
+        <span class="dock-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span>
+        <span class="dock-label">Pieces</span>
+      </button>
+      <button class="dock-btn" id="dock-log" data-popup="popup-log" title="Game log">
+        <span class="dock-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></span>
+        <span class="dock-label">Log</span>
+      </button>
+  </nav>
+  <!-- The lesson (phantomfury_director.js): a spotlight with a ring on
+       the piece in play, a pointer from the guide's bubble to it, the
+       guide herself, and a teammate's cameo on a shot or an assault. -->
+  <div id="lesson-spot" hidden></div>
+  <svg id="lesson-arrow" aria-hidden="true"><defs><marker id="lesson-arrow-head" viewBox="0 0 10 10" refX="7" refY="5"
+    markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker></defs>
+    <path id="lesson-arrow-path" d="M0,0" marker-end="url(#lesson-arrow-head)"/></svg>
+  <img id="lesson-cameo" src="../assets/characters/hendrix-rifle-kneeling-fire.png" alt="" hidden>
+  <div class="panel" id="tutor" hidden role="dialog" aria-label="Lesson">
+    <div id="guide"><img id="guide-img" src="../assets/characters/walsh-face-smiling.png" alt="Specialist Walsh"></div>
+    <div class="tutor-head"><span class="tutor-name">Spc. Walsh</span><span id="beat-step"></span></div>
+    <!-- the bubble's words scroll inside the room the layout leaves, so a
+         large text size never pushes the bubble over the ring -->
+    <div class="tutor-body" id="tutor-body">
+    <div id="beat-result" hidden></div>
+    <h3 id="beat-title"></h3>
+    <div id="beat-card" hidden></div>
+    <div id="beat-say"></div>
+    <ol id="beat-steps" hidden></ol>
+    <div id="beat-explain"></div>
+    <div id="lesson-tray" hidden></div>
+    <div id="beat-refuse" hidden></div>
+    <div id="beat-right" hidden></div>
+    </div>
+    <!-- the move's button stays outside the scroll, so it is never below the fold -->
+    <div id="lesson-acts" hidden></div>
+    <div class="tutor-foot">
+      <button class="btn why-toggle" id="btn-why" title="The rule behind this step">Why?</button>
+      <button class="btn" id="btn-leave">Leave lesson</button>
+      <button class="btn" id="btn-back" title="Read the step before again" disabled>◂ Back</button>
+      <button class="btn primary" id="btn-continue">Next ▸</button>
+    </div>
+  </div>
+  <div id="popup-scrim" hidden></div>
+  <section class="popup" id="popup-changes" hidden aria-label="What changed">
+    <div class="popup-head">
+      <span class="dock-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+      <h3>What changed</h3>
+      <button class="popup-close" data-close aria-label="Close">×</button>
+    </div>
+    <div class="popup-body">
+      <div class="panel" id="changes" aria-live="polite">
+        <div class="changes-head"><h4>What changed</h4><span id="change-stamp">New game</span></div>
+        <div id="change-summary">The board is set. Make the first decision.</div>
+        <ul id="change-list"></ul>
+      </div>
+    </div>
+  </section>
+  <section class="popup" id="popup-pieces" hidden aria-label="Pieces">
+    <div class="popup-head">
+      <span class="dock-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span>
+      <h3>Pieces — reserves</h3>
+      <button class="popup-close" data-close aria-label="Close">×</button>
+    </div>
+    <div class="popup-body">
+      <div class="panel" id="pools"></div>
+    </div>
+  </section>
+  <section class="popup" id="popup-log" hidden aria-label="Game log">
+    <div class="popup-head">
+      <span class="dock-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg></span>
+      <h3>Game log</h3>
+      <button class="popup-close" data-close aria-label="Close">×</button>
+    </div>
+    <div class="popup-body">
+      <div class="panel" id="log"></div>
+    </div>
+  </section>
+  <section class="popup decision-panel" id="decision-panel" hidden aria-label="Your available decisions">
+    <div class="popup-head">
+      <span class="dock-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/></svg></span>
+      <div class="decision-titles">
+        <div class="decision-kicker">Your move</div>
+        <h3 id="decision-title">Decisions</h3>
+        <p id="decision-subtitle"></p>
+      </div>
+      <button class="popup-close" data-close aria-label="Close">×</button>
+    </div>
+    <div class="decision-alert" id="decision-alert" hidden></div>
+    <div class="decision-scroll">
+      <h4>Your pieces</h4>
+      <div class="decision-pieces" id="decision-pieces"></div>
+      <h4 id="decision-action-title">Actions for the selected piece</h4>
+      <div class="decision-actions" id="decision-actions"></div>
+      <h4>Phase actions</h4>
+      <div class="decision-actions" id="decision-phase-actions"></div>
+    </div>
+    <div class="decision-foot">
+      <button class="btn" id="btn-decision-save">Save in progress</button>
+      <button class="btn" id="btn-decision-load">Load saved</button>
+      <button class="btn primary decision-end" id="btn-decision-end">END PHASE</button>
+    </div>
+    <div class="decision-save-note" id="decision-save-note"></div>
+  </section>
+  <div id="phase-banner" hidden></div>
+  <!-- The hover card: a counter shown large on a see-through backing, what
+       it is beside it. Never takes the mouse. -->
+  <div id="peek" hidden aria-hidden="true">
+    <div class="peek-face"><img alt=""></div>
+    <div class="peek-text">
+      <div class="peek-side" id="peek-side"></div>
+      <h4 id="peek-title"></h4>
+      <ul class="peek-facts" id="peek-facts"></ul>
+      <ul class="peek-notes" id="peek-notes"></ul>
+    </div>
+  </div>
+  <!-- First visit: someone who has never played is asked, before anything
+       else, whether they want to be shown. The goal is on this screen. -->
+  <!-- The title screen, every time the page opens: who made the original
+       game, what this edition is, and the three ways in. -->
+  <div id="title-screen" role="dialog" aria-label="Phantom Fury">
+    <div class="ts-inner">
+      <img class="ts-cover" src="../assets/box.jpg" alt="Phantom Fury box art">
+      <img class="ts-walsh" src="../assets/characters/walsh-walking-rifle.png" alt="Specialist Walsh">
+      <div class="ts-text">
+        <div class="ts-kicker" id="ts-kicker"></div>
+        <h1 class="ts-name" id="ts-name"></h1>
+        <div class="ts-sub" id="ts-sub"></div>
+        <div class="ts-card blue"><h4 id="ts-orig-head"></h4><p id="ts-orig-text"></p><p class="dim" id="ts-orig-owns"></p></div>
+        <div class="ts-card amber"><h4 id="ts-priv-head"></h4><p id="ts-priv-text"></p></div>
+        <div class="ts-card green"><h4 id="ts-vibe-head"></h4><p id="ts-vibe-text"></p></div>
+        <div class="ts-buttons">
+          <button class="ts-btn primary" id="btn-title-play"><b>▶ <span></span></b><small></small></button>
+          <button class="ts-btn" id="btn-title-learn"><b></b><small></small></button>
+          <button class="ts-btn" id="btn-title-load"><b></b><small></small></button>
+        </div>
+        <div class="ts-version" id="ts-version"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Ready to play: when no game is under way (a new table, or out of a
+       lesson), the way into a real game. -->
+  <div id="ready" class="overlay" hidden>
+    <div class="panel card ready-card">
+      <div class="kicker" id="ready-kicker"></div>
+      <h2 id="ready-head"></h2>
+      <p class="first" id="ready-body"></p>
+      <ol class="ready-steps" id="ready-steps"></ol>
+      <div class="bar">
+        <button class="btn primary" id="btn-ready-setup"></button>
+        <button class="btn" id="btn-ready-auto"></button>
+        <button class="btn" id="btn-ready-learn"></button>
+        <button class="btn" id="btn-ready-title"></button>
+      </div>
+    </div>
+  </div>
+  <!-- Learn to play: the chapters, in the order a newcomer learns them. -->
+  <div id="chapters" class="overlay" hidden>
+    <div class="panel card chapters-card">
+      <div class="chapters-head">
+        <img class="chapters-guide" src="../assets/characters/walsh-bust-hand-signals.png" alt="Specialist Walsh">
+        <div>
+          <div class="kicker">Learn to play</div>
+          <h2>Training with Spc. Walsh</h2>
+          <p>Like learning chess: set up the board, learn the pieces, read the ground, try the moves, play a turn, then watch one played at full speed.</p>
+        </div>
+      </div>
+      <ol id="chapter-list"></ol>
+      <div class="bar"><button class="btn" id="btn-chapters-close">Close</button></div>
+    </div>
+  </div>
+  <!-- How to play: the goal, one turn, the decisions, the words. -->
+  <div id="primer" class="overlay" hidden>
+    <div class="panel card">
+      <div class="kicker">How to play</div>
+      <div class="sheet-body">
+        <p class="goal" id="primer-goal"></p>
+        <h3>A turn</h3><ol id="primer-turn"></ol>
+        <h3>What you decide</h3><ul id="primer-decisions"></ul>
+        <h3>Words on the table</h3><dl id="primer-terms"></dl>
+      </div>
+      <div class="bar">
+        <button class="btn primary" id="btn-primer-learn">Learn to play</button>
+        <button class="btn" id="btn-primer-coach">Replay the first-game guide</button>
+        <label class="opt-check" title="Walsh's guide always rings the control she means; this adds an arrow from her panel to it">
+          <input type="checkbox" id="opt-coach-arrow"> Guide points with an arrow</label>
+        <label class="opt-check" title="Walsh explains the tricky moments (Dragon Eye, IED or Sniper, a CAAT taking a hit, Flooding, Defensive Fire) the first time each comes up">
+          <input type="checkbox" id="opt-hints"> Walsh's tips in tricky moments</label>
+        <button class="btn" id="btn-primer-close">Close</button>
+      </div>
+    </div>
+  </div>
+  <div id="end" hidden>
+    <div class="panel card">
+      <h2 id="end-title"></h2>
+      <p id="end-body"></p>
+      <button class="btn primary" id="btn-end-new">New match</button>
+    </div>
+  </div>
+</div>
+
+
+<script src="../fw/core/fw_stage.js"></script>
+<script src="../fw/core/fw_type.js"></script>
+<script src="../fw/core/fw_motion.js"></script>
+<script src="../fw/core/fw_rng.js"></script>
+<script src="../fw/core/fw_record.js"></script>
+<script src="../fw/core/fw_game.js"></script>
+<script src="../fw/core/fw_ai.js"></script>
+<script src="../fw/core/fw_tutorial.js"></script>
+<script src="../fw/core/fw_save.js"></script>
+<script src="../data/phantomfury_board.js"></script>
+<script src="../data/phantomfury_primer.js"></script>
+<script src="../data/phantomfury_title.js"></script>
+<script src="../data/phantomfury_guide.js"></script>
+<script src="../data/phantomfury_tracks.js"></script>
+<script src="../data/phantomfury_counter_info.js"></script>
+<script src="phantomfury_game.js"></script>
+<script src="phantomfury_ai.js"></script>
+<script src="phantomfury_tutorial.js"></script>
+<script src="phantomfury_app.js"></script>
+<script src="phantomfury_director.js"></script>
+<script>PhantomFuryApp.fitStage(); PhantomFuryApp.boot();</script>
+</body>
+</html>

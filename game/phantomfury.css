@@ -1,0 +1,881 @@
+/* phantomfury.css — this page's chrome. Since 2026-10-17 the stage is
+ * map-centric (owner's call): 1080 tall and as wide as the window's shape,
+ * the menu 1% from the top, the map to 2% of the other edges
+ * (--safe-x is set by fitStage; --safe-y is the 2% under the map).
+ * The board is the project's own area view (the real map scan with Zone,
+ * Location and Street overlays), styled here; fw/ is never edited. */
+
+/* Type system (owner, 2026-10-31): one display face, one reading face,
+ * six sizes. Oswald (assets/fonts, OFL) for anything that names or labels:
+ * titles, headings, kickers, buttons, the phase strip, the status line.
+ * The sans (--font) for anything read as sentences. No monospace.
+ * Every font-size on the page is one of the --t steps below. */
+@font-face { font-family: "Oswald"; src: url(../assets/fonts/Oswald.ttf) format("truetype");
+  font-weight: 200 700; font-display: block; }
+:root { --display: "Oswald", "DIN Condensed", "Arial Narrow", sans-serif;
+  --t-xs: 12px; --t-sm: 14px; --t-md: 16px; --t-lg: 20px; --t-xl: 24px; --t-xxl: 32px; --t-hero: 96px; }
+
+/* First, always: a display rule below must never beat the hidden attribute. */
+[hidden] { display: none !important; }
+
+.fw-stage { --safe-y: 22px; --safe-top: 11px; position: relative; overflow: hidden; display: flex;
+  flex-direction: column; padding: var(--safe-top) var(--safe-x) var(--safe-y); box-sizing: border-box;
+  background: transparent; }
+body { background: #07090e; overflow: hidden; }
+#backdrop { position: fixed; inset: -40px; background: #07090e url(../assets/PhF_Board.jpeg) center / cover no-repeat;
+  filter: blur(26px) brightness(.38) saturate(.8); pointer-events: none; }
+/* The game area is one framed box: the title-safe rectangle. The menu
+ * strip runs flush across its top, the map fills the rest and is clipped
+ * to it, the dock stands against its right edge. Outside it is margin. */
+.fw-stage::after { content: ""; position: absolute; left: var(--safe-x); right: var(--safe-x);
+  top: var(--safe-top); bottom: var(--safe-y); border: 2px solid var(--panel-edge-bright);
+  pointer-events: none; z-index: 2000; }
+#board { position: relative; order: 2; flex: 1 1 auto; min-height: 0; width: 100%;
+  overflow: hidden; background: #20242c; }
+.pf-map { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Zone tiles carry no number — the map already prints it in the green
+ * control square. A tile is a click target (placements, Dragon Eye)
+ * that stays invisible until it matters: a small blue mark while the
+ * Zone is USMC-held, a green wash when a click would take it, an
+ * amber frame once picked. */
+.pf-zone { position: absolute; transform: translate(-50%, -50%); width: 46px; height: 30px;
+  padding: 0; border-radius: 10px; border: 2px solid transparent;
+  background: transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; }
+.pf-zone-mark { width: 15px; height: 15px; border-radius: 4px; background: transparent; }
+.pf-zone.ctl-usmc .pf-zone-mark { background: rgba(90, 150, 240, .9);
+  box-shadow: 0 0 0 2px rgba(10, 16, 30, .45); }
+.pf-zone.ruins { outline: 2px dashed rgba(150, 80, 30, .5); outline-offset: -3px; }
+.pf-zone.tgt { background: rgba(80, 220, 120, .25); border-color: rgba(80, 220, 120, .85); }
+.pf-zone.pick { background: rgba(255, 180, 60, .18); border-color: var(--amber); }
+.pf-zone:hover { border-color: rgba(255, 255, 255, .45); }
+.pf-loc { position: absolute; transform: translate(-50%, -50%); width: 11px; height: 11px;
+  border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, .6); background: rgba(15, 18, 24, .38);
+  cursor: pointer; padding: 0; }
+.pf-loc.tgt { background: var(--good); border-color: #fff; box-shadow: 0 0 0 3px rgba(80, 220, 120, .55); }
+.pf-street { position: absolute; transform: translate(-50%, -50%); width: 15px; height: 15px;
+  border-radius: 4px; border: 1.5px solid rgba(20, 20, 20, .45); background: rgba(110, 110, 110, .35);
+  cursor: pointer; padding: 0; }
+.pf-street.tgt { background: var(--good); border-color: #fff; }
+.pf-unit { position: absolute; transform: translate(-50%, -50%); width: 29px; height: 29px;
+  border-radius: 7px; border: 2px solid rgba(15, 15, 15, .65); padding: 0; cursor: pointer;
+  background: #ddd; overflow: hidden; box-shadow: 0 1px 4px rgba(0, 0, 0, .55); }
+.pf-unit img { width: 100%; height: 100%; display: block; }
+.pf-unit span { position: absolute; right: 1px; bottom: 0; font-size: calc(13px * var(--type));
+  font-weight: 800; color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000; line-height: 1; }
+.pf-unit.sel { outline: 3px solid var(--amber); z-index: 5; }
+.pf-unit.tgt { outline: 3px solid var(--good); z-index: 5; }
+.pf-unit.pinned { box-shadow: inset 0 0 0 3px #e33; }
+.pf-unit.fired { filter: grayscale(.65) brightness(.8); }
+.pf-unit.pool { position: static; transform: none; flex: 0 0 auto; }
+#pools { padding: 8px 10px; max-height: 190px; overflow-y: auto; flex: 0 1 auto; min-height: 0; }
+.pool-label { font-size: calc(var(--t-sm) * var(--type)); color: var(--ink-2); margin: 4px 0; }
+.pool-row { display: flex; flex-wrap: wrap; gap: 5px; }
+#actions { max-height: 216px; overflow-y: auto; align-content: flex-start; flex: 0 0 auto; }
+/* ---- the floating chrome: menu bar + status bar on top, dock at right ----
+ * The menu and status bars own a permanent strip at the top of the
+ * stage, like an OS menu bar; the map lives in its own viewport below
+ * them and never slides underneath. The remaining chrome (dock,
+ * popups, the decision and lesson panels) floats over the map inside
+ * the title-safe area. */
+#topbar { position: static; order: 1; flex: 0 0 auto; margin: 0;
+  display: flex; flex-direction: column; gap: 0; }
+#topbar .panel { border-radius: 0; border-width: 0 0 1px; box-shadow: none; }
+#menubar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  padding: 6px 10px 6px 8px; }
+#menubar #taste { margin-left: auto; }
+.menu-logo { width: 87px; height: 40px; border-radius: 4px; flex: 0 0 auto;
+  background-image: url(../assets/PhF_Board.jpeg); background-repeat: no-repeat;
+  background-size: 403px 292px; background-position: 0 -4px; }
+/* The status card floats over the map's left side: extra information,
+   not a strip of its own. */
+#statusbar { position: absolute; left: calc(var(--safe-x) + 14px); top: calc(var(--safe-top) + 70px);
+  width: 470px; padding: 10px 14px; z-index: 1500; border-radius: 12px;
+  background: rgba(14, 18, 28, .86); backdrop-filter: blur(6px); box-shadow: 0 8px 26px rgba(0, 0, 0, .45); }
+#statusbar #status { margin-bottom: 4px; }
+/* In a lesson the guide owns the stage: menu, status and dock step away. */
+.in-lesson:not(.lesson-chrome) #topbar, .in-lesson:not(.lesson-chrome) #statusbar,
+.in-lesson:not(.lesson-chrome) #dock { display: none; }
+/* a controls tour shows them, to look at only: the lesson keeps the clicks */
+.in-lesson.lesson-chrome #topbar, .in-lesson.lesson-chrome #statusbar, .in-lesson.lesson-chrome #dock { pointer-events: none; }
+.in-lesson #phase-banner { z-index: 2600; top: var(--safe-top); }
+.bar { display: flex; flex-wrap: wrap; gap: 6px; }
+#status { font-weight: 600; font-size: calc(var(--t-sm) * var(--type)); line-height: 1.4; color: var(--ink-2); }
+#prompt { font-size: calc(var(--t-md) * var(--type)); font-weight: 600; min-height: 24px; }
+.why { min-height: 22px; font-size: calc(var(--t-sm) * var(--type)); color: var(--ink-2); opacity: 0; transition: opacity .2s; }
+.why.show { opacity: 1; }
+.why.bad { color: var(--danger); }
+.why.good { color: var(--good); }
+#log { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 10px 12px; font-size: calc(var(--t-sm) * var(--type)); line-height: 1.5; font-variant-numeric: tabular-nums; }
+#log .line { color: var(--ink-2); }
+#log .line.rec { color: var(--amber); }
+#log .line.ai { color: var(--cyan); }
+/* ---- Learn to Play v2 (phantomfury_director.js) ----
+ * The spotlight is one ring whose huge shadow is the scrim; shadows take
+ * no clicks, so the board under it still answers (the board itself locks
+ * every piece but the one in play: #board.lesson-lock). */
+#lesson-spot { position: absolute; z-index: 2400; border-radius: 20px; pointer-events: none;
+  border: 3px solid var(--amber); box-shadow: 0 0 0 4000px rgba(4, 7, 12, .58);
+  transition: left .45s cubic-bezier(.65,0,.35,1), top .45s cubic-bezier(.65,0,.35,1),
+    width .45s cubic-bezier(.65,0,.35,1), height .45s cubic-bezier(.65,0,.35,1), border-color .3s, box-shadow .45s; }
+#lesson-spot::after { content: ""; position: absolute; inset: -12px; border-radius: 28px;
+  border: 3px solid rgba(255, 190, 80, .8); animation: pf-ring 1.6s ease-out infinite; }
+#lesson-spot.none { border-color: transparent; box-shadow: 0 0 0 4000px rgba(4, 7, 12, .42); }
+#lesson-spot.none::after, .lesson-flying #lesson-spot::after { display: none; }
+.lesson-flying #lesson-spot { border-color: transparent; }
+@keyframes pf-ring { 0% { transform: scale(.97); opacity: 1; } 100% { transform: scale(1.12); opacity: 0; } }
+#lesson-arrow { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 2450;
+  pointer-events: none; overflow: visible; }
+#lesson-arrow path { fill: none; stroke: var(--amber); stroke-width: 4; stroke-linecap: round;
+  stroke-dasharray: 1600; stroke-dashoffset: 1600; opacity: 0; }
+#lesson-arrow marker path { fill: var(--amber); stroke: none; stroke-dasharray: none; stroke-dashoffset: 0; opacity: 1; }
+#lesson-arrow.show #lesson-arrow-path { animation: pf-draw .65s ease-out .1s forwards; }
+@keyframes pf-draw { 0% { opacity: 1; stroke-dashoffset: 1600; } 100% { opacity: 1; stroke-dashoffset: 0; } }
+#tutor { position: absolute; z-index: 2500; width: 640px; padding: 16px 22px 14px; border-radius: 16px;
+  background: rgba(13, 17, 27, .97); border: 2px solid var(--amber); box-shadow: 0 22px 60px rgba(0, 0, 0, .65);
+  transition: left .5s cubic-bezier(.65,0,.35,1), top .5s cubic-bezier(.65,0,.35,1); }
+#tutor.enter { animation: pf-bubble-in .45s cubic-bezier(.2,.9,.3,1.2); }
+@keyframes pf-bubble-in { 0% { opacity: 0; transform: translateY(18px) scale(.96); } 100% { opacity: 1; transform: none; } }
+#guide { position: absolute; bottom: -10px; width: 200px; height: 270px; pointer-events: none; }
+#tutor.guide-right #guide { right: -200px; }
+#tutor.guide-left #guide { left: -200px; }
+#guide img { width: 100%; height: 100%; object-fit: contain; object-position: bottom center;
+  image-rendering: pixelated; filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .7)); }
+#guide.swap img { animation: pf-guide-pop .4s cubic-bezier(.2,.9,.3,1.3); }
+@keyframes pf-guide-pop { 0% { transform: translateY(14px) scale(.94); opacity: .3; } 100% { transform: none; opacity: 1; } }
+.tutor-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+.tutor-name { white-space: nowrap; font-size: calc(var(--t-xs) * var(--type)); letter-spacing: .14em; text-transform: uppercase;
+  color: var(--amber); font-weight: 800; }
+#beat-step { margin-left: auto; text-align: right; font-size: calc(var(--t-xs) * var(--type)); color: var(--ink-3); letter-spacing: .08em; }
+#beat-title { margin: 2px 0 8px; font-size: calc(var(--t-xl) * var(--type)); line-height: 1.15; }
+#beat-say { font-size: calc(var(--t-md) * var(--type)); line-height: 1.45; font-weight: 500; margin-bottom: 10px; }
+#beat-explain { font-size: calc(var(--t-sm) * var(--type)); line-height: 1.45; color: var(--ink-2); margin-bottom: 10px;
+  border-left: 3px solid var(--cyan); padding-left: 12px; }
+#beat-hint { font-size: calc(var(--t-md) * var(--type)); color: var(--amber); font-weight: 700; margin-bottom: 8px; }
+#beat-refuse { font-size: calc(var(--t-sm) * var(--type)); color: var(--danger); background: rgba(220, 60, 60, .12);
+  border-radius: 8px; padding: 6px 12px; margin-bottom: 6px; line-height: 1.35; }
+#beat-refuse.shake { animation: pf-shake .4s; }
+@keyframes pf-shake { 0%, 100% { transform: none; } 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+#lesson-acts { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 4px; max-height: 190px; overflow-y: auto; padding: 8px; }
+.lesson-act { font-size: calc(var(--t-md) * var(--type)); padding: 12px 18px; animation: pf-act-glow 1.4s ease-in-out infinite; }
+@keyframes pf-act-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 190, 80, .7); } 50% { box-shadow: 0 0 0 8px rgba(255, 190, 80, 0); } }
+.tutor-foot { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+#beat-wait { color: var(--good); font-weight: 700; font-size: calc(var(--t-sm) * var(--type)); }
+#beat-cite { margin-right: auto; color: var(--ink-3); font-size: calc(var(--t-xs) * var(--type)); }
+#btn-continue { font-size: calc(var(--t-md) * var(--type)); padding: 10px 22px; }
+#beat-result { background: rgba(255, 255, 255, .05); border-radius: 10px; padding: 10px 12px; margin: 4px 0 12px;
+  animation: pf-bubble-in .4s ease-out; }
+.result-kicker { font-size: calc(var(--t-xs) * var(--type)); letter-spacing: .14em; text-transform: uppercase; color: var(--amber);
+  margin-bottom: 6px; font-weight: 800; }
+.result-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; font-size: calc(var(--t-sm) * var(--type)); }
+.result-need { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.die { flex: 0 0 auto; width: 46px; height: 46px; border-radius: 10px; background: #f3efe6; color: #121212;
+  font-weight: 900; font-size: 26px; display: grid; place-items: center; box-shadow: 0 4px 10px rgba(0, 0, 0, .5); }
+.die.rolling { animation: pf-tumble .12s linear infinite; }
+.die.landed { animation: pf-land .35s cubic-bezier(.2,.9,.3,1.4); }
+@keyframes pf-tumble { 0% { transform: rotate(-14deg); } 50% { transform: rotate(14deg) translateY(-3px); } 100% { transform: rotate(-14deg); } }
+@keyframes pf-land { 0% { transform: scale(1.35); } 100% { transform: scale(1); } }
+#lesson-cameo { position: absolute; z-index: 2550; right: calc(var(--safe-x) + 20px); bottom: var(--safe-y);
+  height: 440px; pointer-events: none; image-rendering: pixelated; filter: drop-shadow(0 10px 22px rgba(0, 0, 0, .7)); }
+#lesson-cameo.play { animation: pf-cameo 2.4s cubic-bezier(.2,.9,.3,1) forwards; }
+@keyframes pf-cameo { 0% { transform: translateX(120%); } 14%, 82% { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(120%); opacity: 0; } }
+/* One piece at a time: in a lesson only the piece in play and the places
+   it may go or strike answer the mouse. */
+#board.lesson-lock:not(.lesson-quiz) .pf-unit:not(.tgt):not(.lesson-actor):not(.sel),
+#board.lesson-lock .pf-loc:not(.tgt), #board.lesson-lock .pf-street:not(.tgt),
+#board.lesson-lock .pf-zone:not(.tgt):not(.pick) { pointer-events: none; }
+.pf-unit.lesson-actor { outline: 3px solid var(--amber); z-index: 6; animation: pf-actor 1.2s ease-in-out infinite; }
+@keyframes pf-actor { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 190, 80, .9); } 50% { box-shadow: 0 0 0 10px rgba(255, 190, 80, 0); } }
+#end { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+       background: rgba(7, 10, 20, .78); z-index: 9500; }
+#end .card { padding: 28px 36px; text-align: center; }
+#end h2 { margin: 0 0 8px; font-size: calc(var(--t-xl) * var(--type)); }
+
+/* The newcomer's screens. Overlays live inside the stage and take the whole
+   title-safe area; [hidden] above keeps them from swallowing clicks when shut. */
+.overlay { position: absolute; left: var(--safe-x); right: var(--safe-x);
+  top: var(--safe-y); bottom: var(--safe-y); display: flex; align-items: center;
+  justify-content: center; background: rgba(4, 7, 16, .82); z-index: 3000; }
+.overlay .card { max-width: 720px; max-height: 100%; padding: 30px 38px;
+  display: flex; flex-direction: column; }
+.overlay .sheet-body { overflow-y: auto; min-height: 0; }
+.overlay .kicker { font-size: calc(var(--t-sm) * var(--type)); letter-spacing: .16em;
+  text-transform: uppercase; color: var(--amber); margin-bottom: 6px; }
+.overlay h2 { margin: 0 0 12px; font-size: calc(var(--t-xxl) * var(--type)); }
+.overlay h3 { margin: 18px 0 6px; font-size: calc(var(--t-md) * var(--type)); color: var(--ink-2);
+  letter-spacing: .08em; text-transform: uppercase; }
+.overlay .goal { font-size: calc(var(--t-lg) * var(--type)); line-height: 1.4; margin: 0 0 10px; color: var(--ink); }
+.overlay .first { font-size: calc(var(--t-md) * var(--type)); color: var(--ink-2); margin: 0 0 18px; }
+.overlay ol, .overlay ul { margin: 0; padding-left: 22px; font-size: calc(var(--t-md) * var(--type)); line-height: 1.55; }
+.overlay .cite { color: var(--ink-3); font-size: calc(var(--t-sm) * var(--type)); margin-left: 6px; }
+.overlay dl { margin: 0; font-size: calc(var(--t-md) * var(--type)); line-height: 1.5; }
+.overlay dt { font-weight: 600; float: left; clear: left; width: 9em; }
+.overlay dd { margin: 0 0 4px 9.5em; color: var(--ink-2); }
+.overlay .bar { margin-top: 22px; }
+/* the lesson, when it hands the move over */
+#beat-step { font-size: calc(var(--t-sm) * var(--type)); color: var(--ink-3); letter-spacing: .1em;
+  text-transform: uppercase; margin-bottom: 4px; }
+#beat-hint { font-size: calc(var(--t-md) * var(--type)); color: var(--amber); margin: 6px 0 4px; }
+#beat-wait { font-size: calc(var(--t-sm) * var(--type)); color: var(--good); font-weight: 600; margin: 4px 0 8px; }
+
+/* ---- player refinements: zoomable map, floating decisions, change feed ----
+ * The map world is 1300 wide at the image's own aspect (height set inline); zoom is a
+ * transform on that world, so every Location percentage and counter offset
+ * scales together and the placement maths do not change. */
+.pf-world { position: absolute; left: 0; top: 0; width: 1300px; height: 941px;
+  overflow: hidden; transform-origin: top left; }
+.pf-map { cursor: grab; -webkit-user-drag: none; -webkit-user-select: none; user-select: none; }
+.pf-map:active { cursor: grabbing; }
+#board { touch-action: none; }
+.pf-unit img, .decision-piece img { -webkit-user-drag: none; }
+.pf-unit.state-changed { animation: pf-piece-change 1s ease-out 2; z-index: 7; }
+.pf-zone.state-changed { animation: pf-zone-change 1s ease-out 2; z-index: 4; }
+@keyframes pf-piece-change {
+  0%, 100% { filter: brightness(1); box-shadow: none; }
+  50% { filter: brightness(1.75); box-shadow: 0 0 0 5px var(--amber), 0 0 24px var(--amber); }
+}
+@keyframes pf-zone-change {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 0 0 5px var(--cyan), 0 0 24px var(--cyan); }
+}
+
+#changes { padding: 10px 12px; flex: 0 1 190px; min-height: 0; overflow-y: auto; }
+.changes-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.changes-head h4 { margin: 0; font-size: calc(var(--t-sm) * var(--type)); letter-spacing: .06em;
+  text-transform: uppercase; color: var(--amber); }
+#change-stamp { font-size: calc(var(--t-sm) * var(--type)); color: var(--ink-3); text-align: right; }
+#change-summary { font-size: calc(var(--t-sm) * var(--type)); font-weight: 650; margin-top: 3px; }
+#change-list { margin: 7px 0 0; padding-left: 17px; font-size: calc(var(--t-sm) * var(--type));
+  line-height: 1.45; color: var(--ink-2); }
+#change-list li.bad { color: #ff9c94; }
+#change-list li.good { color: #8fe6b6; }
+#change-list li.phase { color: var(--cyan); font-weight: 700; }
+#changes.flash { animation: pf-panel-flash .8s ease-out; }
+@keyframes pf-panel-flash {
+  0% { border-color: var(--amber); box-shadow: 0 0 0 2px var(--amber-dim); }
+  100% { border-color: var(--panel-edge); box-shadow: none; }
+}
+
+#decision-panel.popup { left: calc(50% - 330px); width: 660px; }
+.decision-titles { flex: 1 1 auto; min-width: 0; }
+.decision-titles h3 { margin: 0; font-size: calc(var(--t-lg) * var(--type)); }
+.decision-titles p { margin: 2px 0 0; font-size: calc(var(--t-sm) * var(--type)); color: var(--ink-2); }
+.decision-kicker { font-size: calc(var(--t-sm) * var(--type)); letter-spacing: .14em;
+  text-transform: uppercase; color: var(--amber); font-weight: 700; }
+.decision-alert { margin: 10px 12px 0; padding: 9px 11px; border-radius: var(--r-sm);
+  background: var(--danger-dim); border: 1px solid rgba(255, 59, 48, .55);
+  font-size: calc(var(--t-sm) * var(--type)); font-weight: 650; }
+.decision-scroll { overflow-y: auto; min-height: 0; padding: 2px 14px 13px; }
+.decision-scroll h4 { margin: 13px 0 7px; font-size: calc(var(--t-sm) * var(--type));
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); }
+.decision-pieces { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.decision-piece { display: flex; align-items: center; gap: 8px; text-align: left;
+  min-height: 48px; padding: 6px 8px; color: var(--ink); background: rgba(30, 44, 74, .72);
+  border: 1px solid var(--panel-edge); border-radius: var(--r-sm); cursor: pointer;
+  font-size: calc(var(--t-sm) * var(--type)); }
+.decision-piece:hover { border-color: var(--cyan); }
+.decision-piece.selected { border-color: var(--amber); box-shadow: 0 0 0 2px var(--amber-dim); }
+.decision-piece.no-actions { opacity: .58; }
+.decision-piece img { width: 30px; height: 30px; border-radius: 5px; flex: 0 0 auto; }
+.decision-piece .piece-main { flex: 1 1 auto; min-width: 0; line-height: 1.3; }
+.decision-piece .piece-main small { display: block; color: var(--ink-2); }
+.decision-piece .piece-count { color: var(--amber); font-weight: 750; white-space: nowrap; }
+.decision-actions { display: flex; flex-direction: column; gap: 5px; }
+.decision-actions .btn { text-align: left; white-space: normal; line-height: 1.35; }
+.decision-empty { font-size: calc(var(--t-sm) * var(--type)); color: var(--ink-3);
+  border: 1px dashed var(--panel-edge); border-radius: var(--r-sm); padding: 8px 10px; }
+/* zoom: four fixed levels in the menu strip, the current one lit */
+.zoom-seg { display: flex; align-items: center; gap: 0; margin-left: 14px; }
+.zoom-seg-label { font-size: calc(var(--t-xs) * var(--type)); letter-spacing: .14em;
+  color: var(--ink-3); margin-right: 8px; }
+.zoom-seg .btn { border-radius: 0; margin-left: -1px; }
+.zoom-seg .btn:first-of-type { border-radius: var(--r-sm) 0 0 var(--r-sm); }
+.zoom-seg .btn:last-of-type { border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+.zoom-seg .btn.on { color: #111; background: var(--amber); border-color: var(--amber);
+  position: relative; z-index: 1; }
+.decision-foot { display: flex; gap: 6px; padding: 10px 12px 6px;
+  border-top: 1px solid var(--panel-edge); background: rgba(7, 10, 20, .35); }
+.decision-end { flex: 1 1 auto; letter-spacing: .04em; }
+.decision-save-note { min-height: 24px; padding: 0 12px 8px;
+  font-size: calc(var(--t-sm) * var(--type)); color: var(--ink-3); }
+
+#phase-banner { position: absolute; left: calc(50% - 335px);
+  top: calc(var(--safe-y) + 140px); width: 670px; z-index: 2300; pointer-events: none;
+  padding: 12px 18px; border-radius: var(--r); border: 1px solid var(--panel-edge-bright);
+  background: rgba(7, 12, 26, .88); color: var(--ink); text-align: center;
+  font-size: calc(var(--t-xl) * var(--type)); font-weight: 800; box-shadow: var(--shadow); }
+#phase-banner.show { animation: pf-banner 1.65s ease-out forwards; }
+@keyframes pf-banner {
+  0% { opacity: 0; transform: translateY(-12px) scale(.97); }
+  12%, 78% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(8px) scale(.99); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-unit.state-changed, .pf-zone.state-changed, #changes.flash, #phase-banner.show { animation: none; }
+}
+
+/* ---- popup panels: the panels behind the dock buttons ----
+ * A dock of square icon buttons lined up on the right side; one
+ * window open at a time over a dimmed table, draggable by its head.
+ * Skinned in the game's own art direction — the chrome's navy panels,
+ * steel edges and single amber accent — not the reference's candy
+ * colours (the owner kept the shapes, sent the colours back). The
+ * widgets inside keep their ids and renderers; only their home moved. */
+#dock { position: absolute; right: calc(var(--safe-x) + 10px); top: calc(var(--safe-y) + 140px);
+  display: flex; flex-direction: column; gap: 6px; }
+.dock-btn { position: relative; flex: 0 0 auto; width: 84px; min-width: 0; overflow: hidden; aspect-ratio: 1 / 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 8px 1px; border-radius: 10px; cursor: pointer;
+  border: 2px solid var(--panel-edge); color: var(--ink);
+  background: linear-gradient(180deg, #1d2742, #141c31);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .4); }
+.dock-btn:hover { border-color: var(--panel-edge-bright); }
+.dock-btn.active { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber), 0 3px 0 rgba(0, 0, 0, .4); }
+.dock-ico { display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 9px; flex: 0 0 auto;
+  background: #2a3854; border: 1px solid var(--panel-edge-bright); color: var(--amber); }
+.dock-ico svg { width: 22px; height: 22px; }
+.dock-label { font-size: calc(var(--t-xs) * var(--type)); font-weight: 700; line-height: 1.1;
+  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dock-badge { position: absolute; top: 7px; right: 7px; width: 15px; height: 15px;
+  border-radius: 50%; background: var(--danger); border: 2px solid #fff;
+  animation: pf-badge-pulse 1.2s ease-in-out infinite; }
+@keyframes pf-badge-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.35); } }
+
+/* the floating chrome stays live above the popup scrim: the dock must
+ * be clickable while a window is open (that is how windows switch), and
+ * the lesson panel must never be trapped under it */
+#topbar, #dock, #tutor { z-index: 2650; }
+#popup-scrim { position: absolute; inset: 0; z-index: 2550; background: rgba(4, 7, 16, .55); }
+.popup { position: absolute; left: calc(50% - 445px); top: calc(var(--safe-y) + 156px);
+  width: 890px; max-height: 810px; z-index: 2600; display: flex; flex-direction: column;
+  overflow: hidden; border-radius: 12px; border: 2px solid var(--panel-edge-bright);
+  background: rgba(13, 20, 38, .97); box-shadow: 0 24px 70px rgba(0, 0, 0, .65); }
+.popup-head { display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  cursor: move; background: rgba(7, 10, 20, .35);
+  border-bottom: 1px solid var(--panel-edge); }
+.popup-head .dock-ico { width: 40px; height: 40px; }
+.popup-head .dock-ico svg { width: 22px; height: 22px; }
+.popup-head h3 { margin: 0; font-size: calc(var(--t-lg) * var(--type)); font-weight: 700; }
+.popup-close { margin-left: auto; flex: 0 0 auto; width: 46px; height: 46px; padding: 0;
+  border-radius: 50%; border: 2px solid rgba(255, 255, 255, .28); cursor: pointer;
+  background: #74373b; color: #fff; font-size: calc(var(--t-xl) * var(--type)); font-weight: 900;
+  line-height: 1; box-shadow: 0 3px 0 rgba(0, 0, 0, .4); }
+.popup-body { overflow-y: auto; min-height: 0; padding: 14px 16px; }
+.popup-body #changes { flex: none; max-height: none; overflow: visible; }
+.popup-body #pools { max-height: none; overflow: visible; }
+.popup-body #actions { max-height: none; overflow: visible; align-content: flex-start; }
+.popup-body #log { flex: none; height: 500px; }
+.popup-body .bar .btn { font-size: calc(var(--t-md) * var(--type)); padding: 11px 16px; }
+
+@media (prefers-reduced-motion: reduce) { .dock-badge { animation: none; } }
+
+/* ---- edge tracks and reserve boxes ----
+ * Track markers are the game's to move: plain tokens, hover card only.
+ * Reserve-box pieces are real counters (.pf-unit), just box-sized. */
+.pf-track { position: absolute; transform: translate(-50%, -50%); width: 21px; height: 21px;
+  border-radius: 4px; overflow: hidden; cursor: default; z-index: 3;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .55); }
+.pf-track img { width: 100%; height: 100%; display: block; -webkit-user-drag: none; }
+.pf-unit.in-box { width: 21px; height: 21px; border-radius: 4px; border-width: 1.5px; }
+.pf-unit.in-box span { font-size: calc(9px * var(--type)); }
+
+/* ---- the hover card ---- */
+#peek { position: absolute; z-index: 2800; pointer-events: none; display: flex; gap: 18px;
+  align-items: flex-start; width: 600px; padding: 16px 20px 14px 16px; border-radius: 14px;
+  background: rgba(8, 12, 24, .80); border: 1px solid var(--panel-edge-bright);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .6); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.peek-face { flex: 0 0 auto; padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, .10); }
+.peek-face img { display: block; width: 140px; height: 140px; border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .55); }
+.peek-text { flex: 1 1 auto; min-width: 0; }
+.peek-side { font-size: calc(var(--t-xs) * var(--type)); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--amber); font-weight: 700; }
+#peek h4 { margin: 3px 0 8px; font-size: calc(var(--t-lg) * var(--type)); line-height: 1.2; }
+.peek-facts, .peek-notes { margin: 0; padding-left: 18px; font-size: calc(var(--t-sm) * var(--type)); line-height: 1.45; }
+.peek-facts { color: var(--ink); font-weight: 600; margin-bottom: 8px; }
+.peek-notes { color: var(--ink-2); }
+.peek-notes .cite { color: var(--ink-3); white-space: nowrap; }
+
+/* ---- the chapter list (Learn to play) ---- */
+.chapters-card { width: 860px; max-width: 860px !important; }
+.chapters-head { display: flex; gap: 22px; align-items: flex-end; margin-bottom: 14px; }
+.chapters-head h2 { margin: 2px 0 6px; font-size: calc(var(--t-xl) * var(--type)); }
+.chapters-head p { margin: 0; color: var(--ink-2); font-size: calc(var(--t-sm) * var(--type)); line-height: 1.45; }
+.chapters-guide { width: 150px; height: 150px; object-fit: contain; image-rendering: pixelated; flex: 0 0 auto;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, .6)); animation: pf-guide-pop .5s cubic-bezier(.2,.9,.3,1.3); }
+#chapter-list { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+#chapter-list li { animation: pf-chapter-in .45s cubic-bezier(.2,.9,.3,1.1) both; animation-delay: calc(var(--i) * 60ms); }
+@keyframes pf-chapter-in { 0% { opacity: 0; transform: translateX(-22px); } 100% { opacity: 1; transform: none; } }
+.chapter { width: 100%; display: flex; align-items: center; gap: 16px; padding: 12px 16px; text-align: left;
+  border-radius: 12px; border: 2px solid var(--panel-edge); background: rgba(255, 255, 255, .04); color: var(--ink);
+  cursor: pointer; font: inherit; transition: border-color .2s, background .2s, transform .15s; }
+.chapter:hover:not(:disabled) { border-color: var(--amber); background: rgba(255, 190, 80, .08); transform: translateX(4px); }
+.chapter.next { border-color: var(--amber); box-shadow: 0 0 0 0 rgba(255, 190, 80, .6); animation: pf-act-glow 1.6s ease-in-out infinite; }
+.chapter.soon { opacity: .45; cursor: default; }
+.chapter-n { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+  font-weight: 900; font-size: calc(var(--t-md) * var(--type)); background: rgba(255, 255, 255, .08); }
+.chapter.done .chapter-n { background: var(--good); color: #08120a; }
+.chapter.next .chapter-n { background: var(--amber); color: #1a1205; }
+.chapter-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; }
+.chapter-title { font-weight: 800; font-size: calc(var(--t-md) * var(--type)); }
+.chapter-blurb { color: var(--ink-2); font-size: calc(var(--t-sm) * var(--type)); }
+.chapter-tag { flex: 0 0 auto; font-size: calc(var(--t-xs) * var(--type)); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 800; }
+.chapter.next .chapter-tag { color: var(--amber); }
+/* a watch chapter: the guide plays, so nothing on the board answers */
+#board.lesson-lock.lesson-watch * { pointer-events: none; }
+.pf-unit.lesson-planned { outline: 3px solid var(--amber); z-index: 6; animation: pf-actor 1.2s ease-in-out infinite; }
+
+/* ---- Chapter 2: a counter shown large, turning over; the quiz ---- */
+.pf-unit img.pf-caat { position: absolute; left: 0; top: 0; width: 12px; height: 12px; border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, .8); box-shadow: 0 0 2px #000; }
+#beat-card { margin: 2px 0 12px; }
+.pc { display: flex; align-items: center; gap: 18px; }
+.pc-flip { flex: 0 0 auto; width: 118px; height: 118px; perspective: 700px; }
+.pc.two .pc-flip { cursor: pointer; }
+.pc-inner { position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
+  transition: transform .8s cubic-bezier(.4,1.4,.5,1); animation: pf-card-in .5s cubic-bezier(.2,.9,.3,1.3); }
+.pc.flipped .pc-inner { transform: rotateY(180deg); }
+.pc-face { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 12px; backface-visibility: hidden;
+  -webkit-backface-visibility: hidden; box-shadow: 0 8px 20px rgba(0, 0, 0, .6); object-fit: cover; }
+.pc-face.back { transform: rotateY(180deg); }
+@keyframes pf-card-in { 0% { transform: scale(.6) rotate(-8deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.pc-labels { display: flex; flex-direction: column; gap: 6px; }
+.pc-l { font-size: calc(var(--t-md) * var(--type)); font-weight: 700; color: var(--ink-3); transition: color .4s, transform .4s; }
+.pc-l.front, .pc.flipped .pc-l.back { color: var(--amber); transform: translateX(4px); }
+.pc.flipped .pc-l.front { color: var(--ink-3); transform: none; }
+.pc-tip { font-size: calc(var(--t-xs) * var(--type)); color: var(--ink-3); }
+#beat-right { font-size: calc(var(--t-md) * var(--type)); font-weight: 700; color: var(--good);
+  background: rgba(80, 220, 120, .1); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; }
+#beat-right.pop { animation: pf-land .45s cubic-bezier(.2,.9,.3,1.4); }
+/* a quiz: every piece on the map answers the click (the check is the page's) */
+#board.lesson-lock.lesson-quiz .pf-unit, #board.lesson-lock.lesson-quiz .pf-loc,
+#board.lesson-lock.lesson-quiz .pf-zone { pointer-events: auto; }
+
+/* ---- Chapter 3: what connects to what, drawn on the map ---- */
+.pf-links { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.pf-links line { stroke: var(--amber); stroke-width: 3.2; stroke-linecap: round;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, .9)); animation: pf-link-draw .5s ease-out forwards; }
+.pf-links circle { fill: var(--amber); stroke: #1a1205; stroke-width: 1; opacity: 0; animation: pf-link-dot .3s ease-out forwards; }
+@keyframes pf-link-draw { to { stroke-dashoffset: 0; } }
+@keyframes pf-link-dot { 0% { opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(2.2); }
+  100% { opacity: 1; transform-box: fill-box; transform-origin: center; transform: scale(1); } }
+/* in a place quiz the Location dots are what you click: make them findable */
+#board.lesson-quiz .pf-loc { width: 15px; height: 15px; border-color: #fff; background: rgba(255, 190, 80, .35); }
+
+/* ---- Chapter 6: the tray of off-map pieces to place ---- */
+#lesson-tray { display: flex; flex-wrap: wrap; gap: 10px; margin: 2px 0 12px; }
+.tray-chip { position: relative; width: 88px; height: 88px; padding: 0; border-radius: 12px; cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, .25); background: #ddd; overflow: hidden;
+  animation: pf-chapter-in .4s cubic-bezier(.2,.9,.3,1.1) both; animation-delay: calc(var(--i) * 45ms);
+  transition: transform .15s, border-color .15s, box-shadow .15s; }
+.tray-chip img { width: 100%; height: 100%; display: block; }
+.tray-chip span { position: absolute; right: 3px; bottom: 1px; font-weight: 900; font-size: 24px; color: #fff;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000; }
+.tray-chip:hover { transform: translateY(-3px); border-color: var(--amber); }
+.tray-chip.sel { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(255, 190, 80, .6); transform: translateY(-4px) scale(1.06); }
+
+/* the bubble's words scroll when the room beside the ring is short */
+.tutor-body { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+
+/* a detached Security Element (top right) and a Hero (bottom left) on their squad's counter */
+.pf-unit img.pf-badge-r, .pf-unit img.pf-badge-l { position: absolute; width: 12px; height: 12px; border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, .8); box-shadow: 0 0 2px #000; }
+.pf-unit img.pf-badge-r { right: 0; top: 0; }
+.pf-unit img.pf-badge-l { left: 0; bottom: 0; }
+
+/* ---- the bubble stands still (owner, 2026-10-18) ----
+ * Bottom centre, every step, anchored by its foot: Next and Leave never
+ * move. Its words scroll inside when long; they fade in once the camera
+ * has landed. The rule behind a step opens on "Why?". */
+#tutor { left: calc(50% - 420px) !important; top: auto !important; bottom: calc(var(--safe-y) + 6px);
+  width: 840px; transition: none; padding: 16px 24px 14px; }
+#tutor.enter { animation: none; }
+/* the words fade in once: no entry animation of their own (it fought the in-flight hide) */
+#tutor.swapping .tutor-body { opacity: 0; transition: opacity .18s ease-in; }
+#tutor.reviewing { border-color: var(--cyan); }
+#tutor.reviewing #beat-step { color: var(--cyan); }
+#tutor .tutor-body { max-height: 360px; transition: opacity .45s ease-out; }
+.lesson-flying #tutor .tutor-body { opacity: 0; }
+#tutor.guide-left #guide, #tutor #guide { left: auto; right: -205px; }
+#beat-explain { display: none; }
+#tutor.why-open #beat-explain { display: block; animation: pf-bubble-in .3s ease-out; }
+#tutor.why-open #btn-why { background: rgba(80, 200, 255, .15); border-color: var(--cyan); }
+.tutor-foot { justify-content: flex-end; }
+.tutor-foot .why-toggle { margin-right: auto; }
+/* while a step waits for your move, Next keeps its place (invisible), so Leave does not shift */
+#tutor #btn-continue[hidden] { display: inline-block !important; visibility: hidden; }
+#beat-steps { list-style: none; margin: 4px 0 12px; padding: 10px 12px; border-radius: 10px;
+  background: rgba(255, 190, 80, .07); border: 1px solid rgba(255, 190, 80, .25); display: flex; flex-direction: column; gap: 8px; }
+#beat-steps li { display: flex; align-items: center; gap: 12px; font-size: calc(var(--t-md) * var(--type)); font-weight: 600; line-height: 1.35; }
+#beat-steps .step-n { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--amber); color: #1a1205; font-weight: 900; font-size: calc(var(--t-sm) * var(--type)); }
+#beat-steps li.done { color: var(--ink-3); }
+#beat-steps li.done .step-t { text-decoration: line-through; text-decoration-color: rgba(255, 255, 255, .35); }
+#beat-steps li.done .step-n { background: var(--good); color: #08120a; animation: pf-land .35s cubic-bezier(.2,.9,.3,1.4); }
+#beat-say { font-size: calc(var(--t-md) * var(--type)); }
+/* Next and Finish share one width, so the button never shifts */
+#tutor #btn-continue { width: calc(140px * var(--type)); text-align: center; }
+
+/* Walsh at twice the size (owner, 2026-10-18), standing beside the bubble */
+#tutor #guide { width: 400px; height: 540px; right: -410px; bottom: -14px; }
+
+/* ---- the move's outcome (Ch 4-6): a verdict, the board moment, the debrief (owner, 2026-10-19) */
+#tutor.refused #beat-steps li.ask { display: none; }
+#beat-steps li.ask { display: block; font-size: calc(var(--t-md) * var(--type)); color: var(--amber); font-weight: 800; margin-bottom: 2px; }
+#tutor.verdict-good #beat-title, #tutor.verdict-bad #beat-title, #tutor.verdict-mixed #beat-title, #tutor.verdict-news #beat-title {
+  font-size: calc(var(--t-xxl) * var(--type)); letter-spacing: .02em; animation: pf-verdict .6s cubic-bezier(.2,.9,.3,1.5) both; }
+#tutor.verdict-good #beat-title { color: var(--good); }
+#tutor.verdict-bad #beat-title { color: var(--danger); }
+#tutor.verdict-mixed #beat-title, #tutor.verdict-news #beat-title { color: var(--amber); }
+#tutor.verdict-good { border-color: var(--good); }
+#tutor.verdict-bad { border-color: var(--danger); }
+#tutor[class*="verdict-"] .tutor-body { display: flex; flex-direction: column; }
+#tutor[class*="verdict-"] #beat-title { order: -2; margin-top: 0; }
+#tutor[class*="verdict-"] #beat-say { order: -1; }
+@keyframes pf-verdict { 0% { transform: scale(.6); opacity: 0; } 100% { transform: none; opacity: 1; } }
+
+.pf-unit.out-miss { animation: pf-out-miss .5s ease-in-out 1.1s 2; }
+@keyframes pf-out-miss { 0%, 100% { transform: translate(-50%, -50%); } 25% { transform: translate(-80%, -50%); } 75% { transform: translate(-20%, -50%); } }
+.pf-unit.out-hit, .pf-unit.out-hurt { z-index: 6; animation: pf-out-hit 1.4s ease-out 1s both; }
+@keyframes pf-out-hit { 0% { box-shadow: 0 0 0 0 rgba(255, 70, 50, .95); filter: brightness(2.2); }
+  100% { box-shadow: 0 0 0 4px rgba(255, 70, 50, .85); filter: none; } }
+.pf-ghost { pointer-events: none; z-index: 6; }
+.pf-ghost.out-kill { animation: pf-out-kill 1.6s ease-in 1s both; }
+@keyframes pf-out-kill { 0% { filter: brightness(1); opacity: 1; transform: translate(-50%, -50%); }
+  20% { filter: brightness(3) sepia(1) saturate(6) hue-rotate(-20deg); transform: translate(-50%, -50%) scale(1.5); }
+  100% { filter: grayscale(1) brightness(.6); opacity: .45; transform: translate(-50%, -50%) scale(.9) rotate(-12deg); } }
+/* a rubber stamp across the counter itself: it never clips under the ring */
+.pf-stamp { position: absolute; z-index: 7; pointer-events: none; transform: translate(-50%, -50%) rotate(-14deg); white-space: nowrap;
+  padding: 2px 6px; border-radius: 4px; border: 2px solid rgba(255, 255, 255, .85); font: 900 10px/1.2 var(--sans, system-ui);
+  letter-spacing: .08em; text-transform: uppercase;
+  color: #fff; background: #c8321f; box-shadow: 0 2px 6px rgba(0, 0, 0, .6); animation: pf-stamp .45s cubic-bezier(.2,.9,.3,1.6) 1.3s both; }
+.pf-stamp.miss { background: #4a5260; }
+.pf-stamp.hurt { background: #b8741a; }
+.pf-stamp.safe { background: #2f8f4e; }
+.pf-unit.out-safe { z-index: 6; box-shadow: 0 0 0 4px rgba(80, 220, 120, .8); }
+@keyframes pf-stamp { 0% { opacity: 0; transform: translate(-50%, -50%) scale(2.6) rotate(-4deg); }
+  100% { opacity: 1; transform: translate(-50%, -50%) rotate(-14deg); } }
+
+/* the closing scene takes the stage's width: the bubble and Walsh beside it, centred together */
+#tutor.debriefing { width: 1480px; left: calc(50% - 840px) !important; }
+#tutor.debriefing .tutor-body { max-height: 780px; }
+#tutor.debriefing #beat-title { margin-bottom: 4px; }
+#tutor.debriefing #beat-say { margin-bottom: 4px; }
+#beat-debrief { margin: 2px 0 10px; }
+.db-kicker { font-size: calc(var(--t-xs) * var(--type)); letter-spacing: .14em; text-transform: uppercase; color: var(--amber);
+  font-weight: 800; margin: 8px 0 5px; }
+.db-rows { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.db-row { display: flex; gap: 10px; align-items: flex-start; background: rgba(255, 255, 255, .05); border-radius: 10px; padding: 6px 12px;
+  animation: pf-bubble-in .4s ease-out both; }
+.db-row:nth-child(2) { animation-delay: .25s; } .db-row:nth-child(3) { animation-delay: .5s; }
+.db-row:nth-child(4) { animation-delay: .75s; } .db-row:nth-child(5) { animation-delay: 1s; } .db-row:nth-child(n+6) { animation-delay: 1.2s; }
+.db-mark { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 900;
+  background: var(--good); color: #08120a; }
+.db-mark.retry { background: var(--amber); }
+.db-head { color: var(--good); }
+.db-row.tone-bad .db-head { color: var(--danger); }
+.db-row.tone-mixed .db-head, .db-row.tone-news .db-head { color: var(--amber); }
+.db-what { font-weight: 700; font-size: calc(var(--t-sm) * var(--type)); line-height: 1.3; }
+.db-res { font-size: calc(var(--t-xs) * var(--type)); color: var(--ink-2); }
+.db-lesson { font-size: calc(var(--t-sm) * var(--type)); line-height: 1.35; color: var(--ink-1, #fff); margin-top: 2px; }
+.db-take { margin: 0; padding-left: 20px; font-size: calc(var(--t-sm) * var(--type)); line-height: 1.35; }
+.db-take li { margin: 2px 0; }
+.db-next { margin-top: 8px; font-weight: 700; color: var(--cyan); font-size: calc(var(--t-sm) * var(--type)); }
+
+/* ------------------------------------------------------------ title screen
+   Every time the page opens (Silent War's layout): the rulebook cover on the
+   left; the edition, the credits and the three ways in on the right. It
+   covers the whole stage; its words and buttons stay inside the safe area. */
+button.menu-logo { border: 0; padding: 0; cursor: pointer; }
+button.menu-logo:hover { outline: 2px solid var(--panel-edge-bright); }
+#title-screen { position: absolute; inset: 0; z-index: 4000; display: flex;
+  align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 0%, #1b3048 0%, #0f1c2d 55%, #0a1220 100%); }
+#title-screen[hidden] { display: none; }
+#title-screen .ts-inner { display: flex; align-items: center; gap: 56px; max-width: 1500px;
+  padding: 54px 96px; }
+#title-screen .ts-cover { width: 400px; height: auto; flex: 0 0 auto; border-radius: 3px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .6), 0 0 0 1px rgba(255, 255, 255, .06); }
+#title-screen .ts-text { flex: 1 1 auto; max-width: 980px; }
+.ts-kicker { font-weight: 600; font-size: var(--t-lg); letter-spacing: .16em; text-transform: uppercase;
+  color: #f0b429; margin-bottom: 6px; }
+.ts-name { margin: 0; font-family: var(--display); font-weight: 700;
+  font-size: var(--t-hero); line-height: 1; letter-spacing: .03em; white-space: nowrap; text-transform: uppercase; color: #fff; }
+.ts-sub { font-size: var(--t-lg); color: #9fb4cc; margin: 10px 0 26px; }
+.ts-card { background: rgba(28, 44, 66, .72); border: 1px solid rgba(120, 160, 220, .2);
+  border-left: 4px solid var(--blue); border-radius: 4px; padding: 16px 22px; margin-bottom: 14px; }
+.ts-card.amber { border-left-color: #f0a030; } .ts-card.amber h4 { color: #f0b429; }
+.ts-card.green { border-left-color: var(--good); }
+.ts-card h4 { margin: 0 0 8px; font-size: var(--t-lg); color: #fff; }
+.ts-card p { margin: 0; font-size: var(--t-md); line-height: 1.45; color: var(--ink); }
+.ts-card p.dim { margin-top: 8px; color: var(--ink-2); font-size: var(--t-sm); }
+.ts-buttons { display: flex; gap: 14px; margin: 22px 0 16px; }
+.ts-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; cursor: pointer;
+  padding: 14px 22px; border-radius: 10px; font-family: var(--font); text-align: left;
+  background: rgba(36, 56, 84, .9); border: 1px solid rgba(140, 190, 255, .28); color: #fff; }
+.ts-btn b { font-size: var(--t-xl); }
+.ts-btn small { font-size: var(--t-sm); color: var(--ink-2); }
+.ts-btn:hover:not(:disabled) { border-color: rgba(140, 190, 255, .7); background: rgba(46, 72, 106, .95); }
+.ts-btn.primary { background: #2fa565; border-color: #bff3d5; box-shadow: 0 0 0 2px rgba(53, 208, 127, .35); }
+.ts-btn.primary small { color: #eafff2; }
+.ts-btn.primary:hover { background: #36b871; }
+.ts-btn:disabled { cursor: default; opacity: .5; }
+.ts-version { font-size: var(--t-sm); color: var(--ink-2); }
+/* the chapter list scrolls inside its card, so Close never falls off the stage */
+#chapters .chapters-card { min-height: 0; }
+#chapter-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 4px; }
+
+/* ------------------------------------------------------------- play guide
+   In the status card: the turn's phases (this one lit), what to do now,
+   and what comes next. */
+#statusbar { width: 560px; }
+#phase-track { list-style: none; display: flex; gap: 4px; margin: 6px 0 8px; padding: 0; }
+#phase-track li { flex: 1 1 0; text-align: center; padding: 4px 2px; border-radius: 6px;
+  font-size: calc(var(--t-xs) * var(--type)); font-weight: 700; letter-spacing: .02em; white-space: nowrap;
+  color: var(--ink-3); background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .06); }
+#phase-track li.done { color: var(--ink-2); }
+#phase-track li.done::before { content: "✓ "; color: var(--good); }
+#phase-track li.now { color: #08120a; background: var(--aura); border-color: #fff;
+  box-shadow: 0 0 0 2px var(--aura-soft); }
+#phase-track li.next { color: var(--ink); border-color: var(--aura-soft); }
+#phase-track li.setup-only { flex: 1.1 1 0; margin-right: 6px; }
+#guide-steps { margin: 6px 0 4px; padding: 0; list-style: none; font-size: calc(var(--t-sm) * var(--type)); line-height: 1.4; }
+#guide-steps li { display: flex; gap: 8px; align-items: baseline; margin: 3px 0; color: var(--ink); }
+#guide-steps li .tick { flex: 0 0 auto; width: 1.3em; text-align: center; color: var(--ink-3); font-weight: 800; }
+#guide-steps li.done { color: var(--ink-3); text-decoration: line-through; }
+#guide-steps li.done .tick { color: var(--good); }
+#guide-steps li.now .tick { color: var(--aura); }
+#guide-steps li .count { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: calc(var(--t-xs) * var(--type)); }
+#guide-acts { margin: 8px 0 4px; }
+#guide-next { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, .08);
+  font-size: calc(var(--t-sm) * var(--type)); color: var(--ink-2); line-height: 1.4; }
+#guide-next b { color: var(--ink); }
+#guide-next .btn { margin-top: 6px; }
+/* Ready to play */
+.ready-card { max-width: 780px !important; }
+.ready-steps { margin: 0 0 18px; }
+.ready-card .bar { gap: 10px; }
+.ready-card .btn { font-size: calc(var(--t-md) * var(--type)); padding: 10px 18px; }
+.ready-steps li { margin: 4px 0; }
+/* Walsh walks out between the box and the words (owner's mock-up,
+   2026-10-31): over the box's right edge, her rifle across the cards. */
+#title-screen .ts-inner { gap: 0; max-width: 1728px; padding: 0 96px; }
+/* box slid right so it sits behind her (owner, 2026-10-31); she is the top layer */
+#title-screen .ts-cover { margin-right: -230px; position: relative; z-index: 0; }
+#title-screen .ts-walsh { height: 940px; width: auto; flex: 0 0 auto; position: relative; z-index: 2;
+  margin-right: -112px; pointer-events: none; image-rendering: pixelated;
+  filter: drop-shadow(0 14px 24px rgba(0, 0, 0, .6)); }
+#title-screen .ts-text { position: relative; z-index: 1; }
+#title-screen .ts-inner { padding: 0; }
+.ts-btn { white-space: nowrap; flex: 0 0 auto; }
+
+/* Polish (owner, 2026-10-31): the box drifts gently left and right behind
+   Walsh; the green highlight follows the mouse across the three buttons
+   (Play holds it until another button is hovered) and pulses there. */
+@keyframes ts-drift { 0%, 100% { transform: translateX(-10px); } 50% { transform: translateX(10px); } }
+#title-screen .ts-cover { animation: ts-drift 7s ease-in-out infinite; }
+@keyframes ts-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 2px rgba(53, 208, 127, .35); }
+  50% { transform: scale(1.04); box-shadow: 0 0 0 6px rgba(53, 208, 127, .18), 0 0 22px rgba(53, 208, 127, .45); } }
+.ts-btn { transition: background .2s, border-color .2s, box-shadow .2s, transform .2s; }
+.ts-btn:hover:not(:disabled) {
+  background: #36b871; border-color: #bff3d5; animation: ts-pulse 1.2s ease-in-out infinite; }
+.ts-btn:hover:not(:disabled) small { color: #eafff2; }
+/* another enabled button is hovered: Play gives up the green */
+.ts-buttons:has(.ts-btn:not(.primary):not(:disabled):hover) .ts-btn.primary {
+  background: rgba(36, 56, 84, .9); border-color: rgba(140, 190, 255, .28); box-shadow: none; }
+.ts-buttons:has(.ts-btn:not(.primary):not(:disabled):hover) .ts-btn.primary small { color: var(--ink-2); }
+@media (prefers-reduced-motion: reduce) {
+  #title-screen .ts-cover, .ts-btn:hover { animation: none !important; } }
+
+/* Type system: the display face, applied by role (see the head of this file). */
+.ts-kicker, .ts-card h4, #phase-track li, .zoom-seg-label,
+.dock-label, .tutor-name, #beat-step, #beat-title, .result-kicker, #end h2,
+.overlay .kicker, .overlay h2, .overlay h3, .changes-head h4, .decision-titles h3,
+.decision-kicker, .decision-scroll h4, .popup-head h3, #peek h4, .chapters-head h2,
+.chapter-title, .db-kicker, .pool-label, .fw-typectl .k, #phase-banner {
+  font-family: var(--display); }
+.overlay h2, #end h2, .chapters-head h2, .popup-head h3, .decision-titles h3,
+#beat-title, .ts-card h4, #peek h4 { font-weight: 600; letter-spacing: .01em; }
+.ts-kicker, .result-kicker, .overlay .kicker, .decision-kicker, .db-kicker, .tutor-name,
+.zoom-seg-label, .fw-typectl .k { font-weight: 500; letter-spacing: .16em; text-transform: uppercase; }
+
+#phase-track li { font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
+.pool-label { font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
+
+/* ------------------------------------------------------------ in hand
+   The picked piece rides in the status card; its targets glow on the map
+   (owner, 2026-10-31: no arrows), and hovering one labels the click. */
+#hand { display: flex; align-items: center; gap: 10px; margin: 6px 0 8px; padding: 8px 10px;
+  border-radius: 8px; background: rgba(240, 180, 41, .12); border: 1px solid rgba(240, 180, 41, .55); }
+#hand[hidden] { display: none; }
+#hand .hand-k { font-family: var(--display); font-size: calc(var(--t-xs) * var(--type)); letter-spacing: .12em;
+  text-transform: uppercase; color: #f0b429; writing-mode: vertical-rl; transform: rotate(180deg); }
+#hand-token .hand-face { position: relative; display: block; width: 44px; height: 44px; left: auto; top: auto;
+  transform: none; box-shadow: 0 0 0 2px #f0b429, 0 0 14px rgba(240, 180, 41, .6); animation: hand-glow 1.4s ease-in-out infinite; }
+#hand-token .hand-face img { width: 100%; height: 100%; }
+#hand-text { flex: 1 1 auto; font-size: calc(var(--t-sm) * var(--type)); line-height: 1.35; color: var(--ink); }
+#hand-text b { color: #fff; }
+#hand-drop { flex: 0 0 auto; }
+@keyframes hand-glow { 50% { box-shadow: 0 0 0 3px #f0b429, 0 0 22px rgba(240, 180, 41, .9); } }
+#hand-tip { position: absolute; z-index: 1450; transform: translate(-50%, -100%); pointer-events: none; white-space: nowrap;
+  padding: 6px 12px; border-radius: 6px; background: #fff; color: #10151f;
+  font-size: calc(var(--t-sm) * var(--type)); box-shadow: 0 4px 14px rgba(0, 0, 0, .5); }
+#hand-tip b { font-family: var(--display); font-weight: 600; letter-spacing: .03em; text-transform: uppercase; margin-right: 4px; }
+
+/* ------------------------------------------------------- first-game coach
+   The lesson's language (owner, 2026-10-31): the amber-edged dark panel,
+   SPC. WALSH kicker, a title, her words, the foot bar; Walsh standing at
+   its right. It keeps to the right of the stage, off the play, and an
+   amber arrow runs from it to a ring round the control she means. */
+#coach { position: absolute; z-index: 2700; width: 380px; right: calc(var(--safe-x) + 8px);
+  bottom: calc(var(--safe-y) + 18px); padding: 14px 20px 12px; border-radius: 16px;
+  background: rgba(13, 17, 27, .97); border: 2px solid var(--amber); box-shadow: 0 22px 60px rgba(0, 0, 0, .65); }
+#coach[hidden], #coach-pointer[hidden] { display: none; }
+#coach.in { animation: pf-bubble-in .45s cubic-bezier(.2,.9,.3,1.2); }
+/* Walsh stands on the panel's top-left corner, so the panel can keep to
+   the stage's right edge and clear the centred Pieces window */
+#coach-guide { position: absolute; left: -10px; bottom: calc(100% - 22px); width: 210px; height: 280px; pointer-events: none; z-index: -1; }
+#coach-img { width: 100%; height: 100%; object-fit: contain; object-position: bottom center;
+  image-rendering: pixelated; filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .7)); }
+#coach-count { margin-left: auto; text-align: right; font-size: calc(var(--t-xs) * var(--type)); color: var(--ink-3); letter-spacing: .08em; }
+#coach-title { margin: 2px 0 6px; font-family: var(--display); font-weight: 600; font-size: calc(var(--t-xl) * var(--type)); line-height: 1.15; }
+#coach-say { margin: 0 0 8px; font-size: calc(var(--t-md) * var(--type)); line-height: 1.45; font-weight: 500; }
+#coach .tutor-foot { justify-content: flex-end; }
+#coach #coach-skip { margin-right: auto; }
+#coach-pointer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 2690;
+  pointer-events: none; overflow: visible; }
+#coach-case { fill: none; stroke: rgba(10, 8, 2, .85); stroke-width: 8; stroke-linecap: round; }
+#coach-line { fill: none; stroke: var(--amber); stroke-width: 4; stroke-linecap: round; }
+#coach-head path { fill: var(--amber); }
+#coach-ring { fill: none; stroke: var(--amber); stroke-width: 3; filter: drop-shadow(0 0 6px rgba(255, 190, 80, .7));
+  animation: coach-ring 1.4s ease-in-out infinite; }
+@keyframes coach-ring { 50% { stroke-width: 6; } }
+@media (prefers-reduced-motion: reduce) { #coach.in, #coach-ring { animation: none; } }
+
+/* Type hierarchy, revised (owner, 2026-10-31): Oswald stays the display
+   face; the reading face is now IBM Plex Sans Condensed (assets/fonts, OFL),
+   narrow like Oswald so the two read as one family. Three tiers:
+     1. Oswald 600, mixed case: titles and headings.
+     2. Oswald 500, small caps-tracked: kickers and labels (phase strip, pools, dock).
+     3. Plex Condensed: sentences at 400, controls at 600, the status line at 500.
+   Buttons left Oswald so they no longer shout as loud as the headings. */
+@font-face { font-family: "Plex Cond"; src: url(../assets/fonts/IBMPlexSansCondensed-400.ttf) format("truetype"); font-weight: 400; font-display: block; }
+@font-face { font-family: "Plex Cond"; src: url(../assets/fonts/IBMPlexSansCondensed-400i.ttf) format("truetype"); font-weight: 400; font-style: italic; font-display: block; }
+@font-face { font-family: "Plex Cond"; src: url(../assets/fonts/IBMPlexSansCondensed-500.ttf) format("truetype"); font-weight: 500; font-display: block; }
+@font-face { font-family: "Plex Cond"; src: url(../assets/fonts/IBMPlexSansCondensed-600.ttf) format("truetype"); font-weight: 600; font-display: block; }
+@font-face { font-family: "Plex Cond"; src: url(../assets/fonts/IBMPlexSansCondensed-700.ttf) format("truetype"); font-weight: 700; font-display: block; }
+:root { --font: "Plex Cond", "IBM Plex Sans Condensed", "Arial Narrow", sans-serif; }
+body, button, input, select, textarea { font-family: var(--font); }
+.btn, .ts-btn { font-family: var(--font); font-weight: 600; letter-spacing: .01em; }
+.btn { font-size: calc(var(--t-md) * var(--type)); }
+.ts-btn b { font-weight: 700; }
+#status { font-family: var(--font); font-weight: 500; letter-spacing: 0; text-transform: none;
+  color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.coach-name, #hand .hand-k, #hand-tip b { font-family: var(--display); }
+.fw-typectl .k, .fw-typectl .v, .fw-motion-t { font-size: calc(var(--t-xs) * var(--type)); }
+
+/* Pieces: reserve tokens big enough to read, and each one's own CF number
+   (position: static had stacked every number in the window's corner). */
+.pf-unit.pool { position: relative; width: 52px; height: 52px; border-radius: 6px; cursor: pointer; }
+.pf-unit.pool span { font-size: calc(var(--t-sm) * var(--type)); }
+.pf-unit.pool:hover { box-shadow: 0 0 0 2px #ffc53d, 0 0 12px rgba(255, 197, 61, .6); }
+.pool-row { gap: 8px; margin: 4px 0 10px; }
+/* the phase strip's later phases must stay readable, only quieter than this one */
+#phase-track li { color: var(--ink-2); }
+
+@media (prefers-reduced-motion: reduce) { #hand-token .hand-face { animation: none; } }
+
+/* The guide's pointer arrow is an option (How to play > "Guide points with an
+   arrow", owner 2026-10-31); by default the ring alone highlights the control. */
+#coach-pointer:not(.with-arrow) #coach-line, #coach-pointer:not(.with-arrow) #coach-case { display: none; }
+.opt-check { display: inline-flex; align-items: center; gap: 6px; font-size: calc(var(--t-sm) * var(--type));
+  color: var(--ink-2); cursor: pointer; margin-left: 6px; }
+.opt-check input { width: 16px; height: 16px; accent-color: var(--amber); }
+
+/* ------------------------------------------------------- reserve tray
+   Over the map's top edge, right of the status card: the reserves that can
+   be played now. No scrim, so the glowing targets stay in view and in reach. */
+#reserve-tray { position: absolute; z-index: 1500; top: calc(var(--safe-top) + 70px);
+  left: calc(var(--safe-x) + 600px); max-width: 760px; padding: 10px 14px 12px; border-radius: 12px;
+  background: rgba(14, 18, 28, .9); backdrop-filter: blur(6px); box-shadow: 0 8px 26px rgba(0, 0, 0, .45);
+  border: 1px solid rgba(240, 180, 41, .45); }
+#reserve-tray[hidden] { display: none; }
+#reserve-tray .tray-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; white-space: nowrap; }
+#reserve-tray .tray-k { font-family: var(--display); font-weight: 500; font-size: calc(var(--t-sm) * var(--type));
+  letter-spacing: .1em; text-transform: uppercase; color: #f0b429; }
+#reserve-tray-hint { font-size: calc(var(--t-sm) * var(--type)); color: var(--ink-2); }
+#reserve-tray-row { display: flex; flex-wrap: wrap; gap: 8px; }
+#reserve-tray .pf-unit.sel { box-shadow: 0 0 0 3px #f0b429, 0 0 16px rgba(240, 180, 41, .8); transform: translateY(-3px); }
+
+/* ---------------------------------------------------------------- focus
+   Grey what cannot be used now (owner, 2026-10-31), so the useful moves
+   stand out: idle pieces on the map, dock buttons with nothing in them,
+   and every disabled button, all in one quiet grey. */
+#board .pf-unit.idle { filter: grayscale(1) brightness(.75); opacity: .55; }
+#board .pf-unit.idle:hover { opacity: .9; }
+.btn:disabled, .dock-btn:disabled, .dock-btn.idle { opacity: .35; filter: grayscale(1); }
+.dock-btn:disabled { cursor: not-allowed; }
+#phase-track li:not(.now):not(.next):not(.done) { opacity: .55; }
+
+/* Air support in the tray and in hand (owner, 2026-10-31): the mission
+   markers are taken like pieces; the number is how many uses are left. */
+.pf-unit.mission { background: #1b2433; }
+.pf-unit.mission img { object-fit: contain; }
+#hand .hand-choices { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+#hand .hand-choices .btn { font-size: calc(var(--t-sm) * var(--type)); padding: 5px 10px; }
+
+/* ------------------------------------------------------- combat report
+   Owner, 2026-10-31: see the shots. The lesson's panel over the map's top
+   edge (where the tray sits in Setup), one row per roll: the die, who
+   rolled, the sum against the number to beat, and the result. */
+#report { position: absolute; z-index: 1600; top: calc(var(--safe-top) + 70px); left: calc(var(--safe-x) + 600px);
+  width: 600px; padding: 14px 20px 12px; border-radius: 16px; background: rgba(13, 17, 27, .97);
+  border: 2px solid var(--amber); box-shadow: 0 22px 60px rgba(0, 0, 0, .65); }
+#report[hidden] { display: none; }
+#report.in { animation: pf-bubble-in .4s cubic-bezier(.2,.9,.3,1.2); }
+#report-cite { margin-left: auto; font-size: calc(var(--t-xs) * var(--type)); color: var(--ink-3); letter-spacing: .08em; }
+#report-title { margin: 2px 0 8px; font-family: var(--display); font-weight: 600; font-size: calc(var(--t-xl) * var(--type)); line-height: 1.15; }
+#report-rolls { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+#report-rolls li { display: flex; gap: 10px; align-items: flex-start; padding: 6px 8px; border-radius: 8px;
+  background: rgba(255, 255, 255, .04); border-left: 3px solid var(--ink-3); }
+#report-rolls li.good { border-left-color: var(--good); }
+#report-rolls li.bad { border-left-color: var(--danger); }
+#report-rolls .die { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 7px; display: grid; place-items: center;
+  background: #f4efe2; color: #10151f; font-family: var(--display); font-weight: 700; font-size: calc(var(--t-lg) * var(--type));
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .2); }
+#report.in #report-rolls .die { animation: report-roll .5s ease-out; }
+@keyframes report-roll { 0% { transform: rotate(-200deg) scale(.4); opacity: 0; } 100% { transform: none; opacity: 1; } }
+#report-rolls .rt { display: flex; flex-direction: column; gap: 1px; font-size: calc(var(--t-sm) * var(--type)); line-height: 1.3; }
+#report-rolls .ctx { color: var(--ink-2); }
+#report-rolls .calc { color: var(--ink); }
+#report-rolls .res { color: #fff; }
+#report-rolls li.good .res { color: var(--good); }
+#report-rolls li.bad .res { color: var(--danger); }
+#report-more { font-size: calc(var(--t-sm) * var(--type)); color: var(--ink-2); margin-bottom: 4px; }
+#report .tutor-foot { justify-content: flex-end; }
+#report-cameo { position: absolute; right: -150px; bottom: -10px; width: 170px; height: 230px; pointer-events: none; }
+#report-cameo[hidden] { display: none; }
+#report-cameo img { width: 100%; height: 100%; object-fit: contain; object-position: bottom; image-rendering: pixelated;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .7)); }
+
+/* shots on the map: tracers from shooter to target, a burst where they land */
+.pf-shot { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 30; }
+.pf-shot line { stroke: #ffd36b; stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 0 4px #ff9d2e);
+  animation: pf-tracer .45s linear forwards; opacity: 0; }
+@keyframes pf-tracer { 0% { opacity: 1; stroke-dashoffset: 14; } 100% { opacity: 1; stroke-dashoffset: calc(-1 * var(--len) * 1px); } }
+.pf-shot.assault line { stroke: #fff; stroke-width: 5; }
+.pf-shot .burst { fill: rgba(255, 160, 60, .55); stroke: #ffd36b; stroke-width: 3; opacity: 0; transform-box: fill-box; transform-origin: center;
+  animation: pf-burst .7s ease-out .4s forwards; }
+.pf-shot .burst.b2 { animation-delay: .65s; fill: rgba(255, 90, 60, .4); }
+@keyframes pf-burst { 0% { opacity: 1; transform: scale(.2); } 60% { opacity: .9; } 100% { opacity: 0; transform: scale(1.8); } }
+
+/* the Game Turn marker stepping on round the date wheel */
+.pf-track.stepping { transition: left 1s cubic-bezier(.65,0,.35,1), top 1s cubic-bezier(.65,0,.35,1); z-index: 40;
+  filter: drop-shadow(0 0 10px rgba(255, 200, 80, .95)); }
+/* the report reads over the map but never blocks it: only OK takes a click */
+#report { pointer-events: none; }
+#report .tutor-foot .btn { pointer-events: auto; }

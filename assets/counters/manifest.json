@@ -1,0 +1,281 @@
+{
+ "assets": [
+  {
+   "id": "marine-4",
+   "file": "marine-4.png",
+   "status": "final",
+   "source": "Marine 4.png"
+  },
+  {
+   "id": "marine-5",
+   "file": "marine-5.png",
+   "status": "final",
+   "source": "Marine 5.png"
+  },
+  {
+   "id": "marine-6",
+   "file": "marine-6.png",
+   "status": "final",
+   "source": "Marine 6.png"
+  },
+  {
+   "id": "marine-4-reduced",
+   "file": "marine-4-reduced.png",
+   "status": "final",
+   "source": "Marine 4 Reduced.png (the CF 4 counter's reduced face, showing CF 3)"
+  },
+  {
+   "id": "marine-5-reduced",
+   "file": "marine-5-reduced.png",
+   "status": "final",
+   "source": "Marine 5 Reduced.png (reduced face, showing CF 4)"
+  },
+  {
+   "id": "marine-6-reduced",
+   "file": "marine-6-reduced.png",
+   "status": "final",
+   "source": "Marine 6 Reduced.png (reduced face, showing CF 5)"
+  },
+  {
+   "id": "iif-4",
+   "file": "iif-4.png",
+   "status": "final",
+   "source": "IIR4.png"
+  },
+  {
+   "id": "iif-3",
+   "file": "iif-3.png",
+   "status": "final",
+   "source": "IIR3.png (the IIF counter's reduced face)"
+  },
+  {
+   "id": "caat",
+   "file": "caat.png",
+   "status": "final",
+   "source": "CAAT.png"
+  },
+  {
+   "id": "abrams",
+   "file": "abrams.png",
+   "status": "final",
+   "source": "Abrams 8.png"
+  },
+  {
+   "id": "guerillas-1-triangle",
+   "file": "guerillas-1-triangle.png",
+   "status": "final",
+   "source": "Guerillas 1 Triangle.png"
+  },
+  {
+   "id": "guerillas-1-circle",
+   "file": "guerillas-1-circle.png",
+   "status": "final",
+   "source": "Guerillas 1 Circle.png"
+  },
+  {
+   "id": "guerillas-1-diamond",
+   "file": "guerillas-1-diamond.png",
+   "status": "final",
+   "source": "Guerillas 1 Diamond.png"
+  },
+  {
+   "id": "guerillas-2-triangle",
+   "file": "guerillas-2-triangle.png",
+   "status": "final",
+   "source": "Guerillas 2 Triangle.png"
+  },
+  {
+   "id": "guerillas-2-circle",
+   "file": "guerillas-2-circle.png",
+   "status": "final",
+   "source": "Guerillas 2 Circle.png"
+  },
+  {
+   "id": "guerillas-2-diamond",
+   "file": "guerillas-2-diamond.png",
+   "status": "final",
+   "source": "Guerillas 2 Diamond.png"
+  },
+  {
+   "id": "guerillas-3-triangle",
+   "file": "guerillas-3-triangle.png",
+   "status": "final",
+   "source": "Guerillas 3 Triangle.png"
+  },
+  {
+   "id": "guerillas-3-circle",
+   "file": "guerillas-3-circle.png",
+   "status": "final",
+   "source": "Guerillas 3 Circle.png"
+  },
+  {
+   "id": "guerillas-3-diamond",
+   "file": "guerillas-3-diamond.png",
+   "status": "final",
+   "source": "Guerillas 3 Diamond.png"
+  },
+  {
+   "id": "martyrs-1-triangle",
+   "file": "martyrs-1-triangle.png",
+   "status": "final",
+   "source": "Martyrs 1 Triangle.png"
+  },
+  {
+   "id": "martyrs-1-circle",
+   "file": "martyrs-1-circle.png",
+   "status": "final",
+   "source": "Martyrs 1 Circle.png"
+  },
+  {
+   "id": "martyrs-1-diamond",
+   "file": "martyrs-1-diamond.png",
+   "status": "final",
+   "source": "Martyrs 1 Diamond.png"
+  },
+  {
+   "id": "martyrs-2-triangle",
+   "file": "martyrs-2-triangle.png",
+   "status": "final",
+   "source": "Martyrs 2 Triangle.png"
+  },
+  {
+   "id": "martyrs-2-circle",
+   "file": "martyrs-2-circle.png",
+   "status": "final",
+   "source": "Martyrs 2 Circle.png"
+  },
+  {
+   "id": "martyrs-2-diamond",
+   "file": "martyrs-2-diamond.png",
+   "status": "final",
+   "source": "Martyrs 2 Diamond.png"
+  },
+  {
+   "id": "martyrs-3-triangle",
+   "file": "martyrs-3-triangle.png",
+   "status": "final",
+   "source": "Martyrs 3 Triangle.png"
+  },
+  {
+   "id": "martyrs-3-circle",
+   "file": "martyrs-3-circle.png",
+   "status": "final",
+   "source": "Martyrs 3 Circle.png"
+  },
+  {
+   "id": "martyrs-3-diamond",
+   "file": "martyrs-3-diamond.png",
+   "status": "final",
+   "source": "Martyrs 3 Diamond.png"
+  },
+  {
+   "id": "martyrs-4-triangle",
+   "file": "martyrs-4-triangle.png",
+   "status": "final",
+   "source": "Martyrs 4 Triangle.png"
+  },
+  {
+   "id": "martyrs-4-circle",
+   "file": "martyrs-4-circle.png",
+   "status": "final",
+   "source": "Martyrs 4 Circle.png"
+  },
+  {
+   "id": "martyrs-4-diamond",
+   "file": "martyrs-4-diamond.png",
+   "status": "final",
+   "source": "Martyrs 4 Diamond.png"
+  },
+  {
+   "id": "suspect-21r",
+   "file": "suspect-21r.png",
+   "status": "final",
+   "source": "Suspect 21R.png (marker perm 0: 2, 1, R)"
+  },
+  {
+   "id": "suspect-12r",
+   "file": "suspect-12r.png",
+   "status": "final",
+   "source": "Suspect 12R.png (marker perm 2: 1, 2, R)"
+  },
+  {
+   "id": "suspect-1r2",
+   "file": "suspect-1r2.png",
+   "status": "final",
+   "source": "Suspect 1R2.png (marker perm 3: 1, R, 2)"
+  },
+  {
+   "id": "suspect-r21",
+   "file": "suspect-r21.png",
+   "status": "final",
+   "source": "Suspect R21.png (marker perm 4: R, 2, 1)"
+  },
+  {
+   "id": "suspect-r12",
+   "file": "suspect-r12.png",
+   "status": "final",
+   "source": "Suspect R12.png (marker perm 5: R, 1, 2)"
+  },
+  {
+   "id": "hero-1",
+   "file": "hero-1.png",
+   "status": "final",
+   "source": "Hero 1.png (Silver Star)"
+  },
+  {
+   "id": "hero-2",
+   "file": "hero-2.png",
+   "status": "final",
+   "source": "Hero 2.png (Medal of Honor)"
+  },
+  {
+   "id": "security",
+   "file": "security.png",
+   "status": "final",
+   "source": "Security Element.png"
+  },
+  {
+   "id": "vp",
+   "file": "vp.png",
+   "status": "final",
+   "source": "VP.png (VP units marker), added 2026-10-06 for the edge tracks"
+  },
+  {
+   "id": "vp10-pos",
+   "file": "vp10-pos.png",
+   "status": "final",
+   "source": "VP10 pos.png (VP tens marker, + side), added 2026-10-06 for the edge tracks"
+  },
+  {
+   "id": "vp10-neg",
+   "file": "vp10-neg.png",
+   "status": "final",
+   "source": "VP10 neg.png (VP tens marker, - side), added 2026-10-06 for the edge tracks"
+  },
+  {
+   "id": "turn",
+   "file": "turn.png",
+   "status": "final",
+   "source": "Turn Marker.png (Game Turn marker), added 2026-10-06 for the edge tracks"
+  },
+  {
+   "id": "hornet",
+   "file": "hornet.png",
+   "status": "final",
+   "source": "Hornet.png (Mission marker), added 2026-10-06 for the edge tracks"
+  },
+  {
+   "id": "super-cobra",
+   "file": "super-cobra.png",
+   "status": "final",
+   "source": "Super Cobra.png (Mission marker), added 2026-10-06 for the edge tracks"
+  },
+  {
+   "id": "dragon-eye",
+   "file": "dragon-eye.png",
+   "status": "final",
+   "source": "Dragon Eye.png (Mission marker), added 2026-10-06 for the edge tracks"
+  }
+ ],
+ "note": "Real counter art from the Phantom Fury 2nd Edition VASSAL module (source/PhantomFury_2nd_Edition/images/), pulled from the Mac 2026-10-05 and renamed to URL-safe names. Each entry: { id, file, status, source }. The page (game/phantomfury_app.js, faceFor) uses these faces and falls back to its drawn SVG faces where the module has no art: Guerillas CF 4, the 'square' ID symbol, and the Suspect 2R1 marker."
+}
