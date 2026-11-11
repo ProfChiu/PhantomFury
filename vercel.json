@@ -1,0 +1,6 @@
+{
+  "redirects": [
+    { "source": "/", "destination": "/game/", "permanent": false },
+    { "source": "/game", "destination": "/game/", "permanent": false }
+  ]
+}
